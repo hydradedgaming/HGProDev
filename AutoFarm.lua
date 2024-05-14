@@ -68,3 +68,39 @@ if elevator then
     end
 end
 end
+while true do 
+local args = {
+    [1] = "Difficulty",
+    [2] = "Vote",
+    [3] = "Normal"
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+-- votes for molten
+task.wait(1)
+local args = {
+    [1] = "Troops",
+    [2] = "Place",
+    [3] = "Scout",
+    [4] = {
+        ["Rotation"] = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        ["Position"] = Vector3.new(3.198105573654175, 2, -3.143373489379883)
+    }
+}
+task.wait(26)
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+--place scout1/2
+
+local args = {
+    [1] = "Troops",
+    [2] = "Place",
+    [3] = "Scout",
+    [4] = {
+        ["Rotation"] = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        ["Position"] = Vector3.new(3.199692487716675, 2, 3.473297119140625)
+    }
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+end
+task.wait(1)
