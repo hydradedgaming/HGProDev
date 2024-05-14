@@ -56,4 +56,15 @@ while true do
     DisconnectFromServer()
     JoinNewServer()
 end
-print('Hello World)
+
+for i = 1, 10 do
+    local elevator = workspace.Elevators:GetChildren()[i]
+
+if elevator then
+    local mapTitle = elevator.State.Map.Title.Value
+    if mapTitle ~= "Rocket Arena" then
+        print("Could not find Rocket Arena map. Trying again.")
+        task.wait(0.5)
+    end
+end
+end
