@@ -123,11 +123,6 @@ local Settings = {
 	RobberyDisabled             = {},
 }
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded default settings.")
-end
-
-local SettingsFile = LoadFile("AutoRobSettings.json")
 
 if SettingsFile then
 	local Success, Data = pcall(function()
