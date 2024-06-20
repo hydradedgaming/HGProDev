@@ -2828,7 +2828,6 @@ local function RobMansion()
     BringPlatform()
 end
 
---[[
 local function robCasino()
     if not settings.includeCasino then return end escape()
     setStat("Going to the casino")
@@ -2883,7 +2882,7 @@ local function robCasino()
     setStat("Casino success!")
     movePlatform()
 end
---]]
+
 
 local function RobCasino()
     if not Robbery.Casino.Enabled then return end Escape("Casino")
@@ -2901,11 +2900,11 @@ local function RobCasino()
 	end
 
     local Hacked = false
-    -- for _, v in pairs(Casino.Computers:GetChildren()) do
-    --      if v.Display.BrickColor == BrickColor.new("Lime green") then
-    --          Hacked = true
-    --      end
-    -- end
+    for _, v in pairs(Casino.Computers:GetChildren()) do
+       if v.Display.BrickColor == BrickColor.new("Lime green") then
+          Hacked = true
+    end
+    end
 
     pcall(function()
         for _, v in pairs(Casino.CamerasMoving:GetChildren()) do
@@ -2931,7 +2930,7 @@ local function RobCasino()
     SetStatus("Casino", "Teleporting to robbery..")
     BringPlatform()
 	ExitVehicle()
-	wait(2)
+	wait()
 	
     if not Hacked then        
         SetStatus("Casino", "Opening robbery..")
@@ -2959,7 +2958,7 @@ local function RobCasino()
 	end
 
 	SetStatus("Casino", "Waiting..")
-    wait(5)
+    wait()
 	
     SetStatus("Casino", "Collecting cash..")
 	Robbery.Casino.Robbed = true
@@ -2969,7 +2968,7 @@ local function RobCasino()
 		for _, v in pairs(Casino.Loots:GetChildren()) do
 			for i = 1, 20 do
 				Root.CFrame = v.CFrame
-				wait(0.1)
+				wait(0.01)
 				v.CasinoLootCollect:FireServer()
 
 				if IsBagFull() then
@@ -2980,7 +2979,7 @@ local function RobCasino()
 	end
 
 	SetStatus("Casino", "Waiting..")
-	wait(5)
+
 	SetStatus("Casino", "Teleporting to volcano..")
 	VehicleTP(NewCFrame(2286, 19, -2060))
 	task.wait(0.1)
@@ -3132,7 +3131,7 @@ local function RobOilRig()
 		SmallTP(NewCFrame(-2900, 165, -4049))
 		repeat 
 			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(false)
-			wait(1.5)
+			wait(0.1)
 			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(true)
 		until Player.Folder:FindFirstChild("Key")
 		SmallTP(NewCFrame(-2893, 165, -4084))
@@ -3397,7 +3396,7 @@ Robbery.CargoTrain.Callback     = RobCargoTrain
 Robbery.PassengerTrain.Callback = RobPassengerTrain
 Robbery.CargoPlane.Callback     = RobCargoPlane
 Robbery.CargoShip.Callback      = RobCargoShip
--- Robbery.Tomb.Callback           = function() end
+Robbery.Tomb.Callback           = function() end
 Robbery.Casino.Callback         = RobCasino
 Robbery.Mansion.Callback        = RobMansion
 Robbery.OilRig.Callback         = RobOilRig
