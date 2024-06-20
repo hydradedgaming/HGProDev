@@ -51,31 +51,7 @@ end
 
 -------------------->> Directory Functions <<--------------------
 
-local function GetDirectory()
-	local Directory = "FarmHub"
-	if not isfolder(Directory) then
-		makefolder(Directory)
-	end
-	return Directory
-end
 
-local function SaveFile(name, data)
-	local success, error = pcall(function()
-		writefile(GetDirectory() .. "\\" .. name, data)
-	end)
-	return success
-end
-
-local function LoadFile(name)
-	local success, data = pcall(function()
-		return readfile(GetDirectory() .. "\\" .. name)
-	end)
-	return success and data or nil
-end
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Setup directory system & functions.")
-end
 
 -------------------->> Statuueses <<--------------------
 --o i hate this
