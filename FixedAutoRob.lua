@@ -3716,12 +3716,6 @@ function ToggleAutorob(bool)
 end
 
 
-ForEvery(5, function(stop)
-	-- save settings
-	Pcall(function()
-		SaveFile("AutoRobSettings.json",  HttpService:JSONEncode(Settings))
-	end, "SaveSettings")
-end)
 
 -------------------->>  Prestart Autorob  <<--------------------
 
