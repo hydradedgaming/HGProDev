@@ -123,27 +123,27 @@ end
 -------------------->> Settings Importation <<--------------------
 
 local Settings = {
-	Enabled                     = false,
-	KillAura                    = false,
+	Enabled                     = true,
+	KillAura                    = true,
 	NotifyOpenings              = true,
 	ChatOpenings                = false,
 	AntiRagdoll                 = true,
 	AntiSkydive                 = true,
-	LoopTirePop                 = false,
-	AutoLockVehicle             = false,
-	AutoKickPlayers             = false,
-	CopRange                    = 110,
+	LoopTirePop                 = true,
+	AutoLockVehicle             = true,
+	AutoKickPlayers             = true,
+	CopRange                    = 30,
 	Cooldown                    = 0,
 	AwaitReward                 = true,
-	HyperFocus                  = false,             
-	PlayerSpeed                 = 70,
-	SkySpeed                    = 95,
-	VehicleSpeed                = 350,
+	HyperFocus                  = true,             
+	PlayerSpeed                 = 100,
+	SkySpeed                    = 120,
+	VehicleSpeed                = 450,
 	LogHook                     = false,
 	WebhookURL                  = "",
 	AlertEarnings               = false,
 	AlertHyper                  = false,
-	ServerHop                   = false,
+	ServerHop                   = true,
 	RobberyDisabled             = {},
 }
 
@@ -1988,8 +1988,8 @@ local function OnRobbery(store)
             Url = Settings.WebhookURL,
             Method = "POST",
             Body = HttpService:JSONEncode({
-            	["content"] = "# " .. Player.Name .. " completed " .. store .. "!\n> **Money Made:** `$" .. FormatCash(MoneyMade) .. "`\n> **Time Elapsed:** `" .. TickToHM(TimeElapsed) .. "`",
-                ["username"] = "FarmHub Premium 👑 (.gg/farmhub)",
+            	["content"] = "``` " .. Player.Name .. " completed " .. store .. "!\n> **Money Made:** `$" .. FormatCash(MoneyMade) .. "`\n> **Time Elapsed:** `" .. TickToHM(TimeElapsed) .. "```",
+                ["username"] = "FarmHub Premium 👑 (.gg/tempcode) FarmHub AutoRob (fixed) By Hydraded",
             }),
             Headers = {
                 ["Content-Type"] = "application/json"
@@ -2017,7 +2017,7 @@ RemoteEvent.OnClientEvent:Connect(function(Hash, ...) -- thanks 0xmin
 					},
 					Body = HttpService:JSONEncode(
 						{
-							username = "FarmHub Premium 👑 (.gg/farmhub)",
+							username = "FarmHub Premium 👑 (.gg/tempcode)",
 							content = "# " .. Args[1] .. "\n> Alerting @everyone"
 						}
 					)
