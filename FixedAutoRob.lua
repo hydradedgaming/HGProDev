@@ -51,7 +51,31 @@ end
 
 -------------------->> Directory Functions <<--------------------
 
+local function GetDirectory()
+	local Directory = "FarmHub"
+	if not isfolder(Directory) then
+		makefolder(Directory)
+	end
+	return Directory
+end
 
+local function SaveFile(name, data)
+	local success, error = pcall(function()
+		writefile(GetDirectory() .. "\\" .. name, data)
+	end)
+	return success
+end
+
+local function LoadFile(name)
+	local success, data = pcall(function()
+		return readfile(GetDirectory() .. "\\" .. name)
+	end)
+	return success and data or nil
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Setup directory system & functions.")
+end
 
 -------------------->> Statuueses <<--------------------
 --o i hate this
@@ -99,30 +123,35 @@ end
 -------------------->> Settings Importation <<--------------------
 
 local Settings = {
-	Enabled                     = true,
-	KillAura                    = true,
+	Enabled                     = false,
+	KillAura                    = false,
 	NotifyOpenings              = true,
 	ChatOpenings                = false,
 	AntiRagdoll                 = true,
 	AntiSkydive                 = true,
-	LoopTirePop                 = true,
-	AutoLockVehicle             = true,
-	AutoKickPlayers             = true,
-	CopRange                    = 30,
+	LoopTirePop                 = false,
+	AutoLockVehicle             = false,
+	AutoKickPlayers             = false,
+	CopRange                    = 110,
 	Cooldown                    = 0,
 	AwaitReward                 = true,
-	HyperFocus                  = true,             
-	PlayerSpeed                 = 100,
-	SkySpeed                    = 120,
-	VehicleSpeed                = 450,
+	HyperFocus                  = false,             
+	PlayerSpeed                 = 70,
+	SkySpeed                    = 95,
+	VehicleSpeed                = 350,
 	LogHook                     = false,
 	WebhookURL                  = "",
 	AlertEarnings               = false,
 	AlertHyper                  = false,
-	ServerHop                   = true,
+	ServerHop                   = false,
 	RobberyDisabled             = {},
 }
 
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded default settings.")
+end
+
+local SettingsFile = LoadFile("AutoRobSettings.json")
 
 if SettingsFile then
 	local Success, Data = pcall(function()
@@ -134,7 +163,10 @@ if SettingsFile then
 			Settings[i] = v
 		end
 	end
-
+    if FH_DEBUG then
+        print("[FarmHub (DEBUG)]: Imported new settings from - workspace/Farmhub/AutoRobSettings.json")
+    end
+end
 
 -------------------->> Client Player <<--------------------
 
@@ -181,6 +213,7 @@ local CheatCheck = nil
 			GetSpawnTime = v.getRemainingDebounce
 		end
 	end
+
 
 if FH_DEBUG then
 	print("[FarmHub (DEBUG)]: Scanned GC successfully.")
@@ -238,6 +271,39 @@ if FH_DEBUG then
 end
 
 -------------------->> Client Modules <<--------------------
+
+local Modules                   = {
+	UI                          = require(ReplicatedStorage.Module.UI),
+	NPC                         = require(ReplicatedStorage.NPC.NPC),
+	Maid                        = require(ReplicatedStorage.Std.Maid),
+	Store                       = require(ReplicatedStorage.App.store),
+	Raycast                     = require(ReplicatedStorage.Module.RayCast),
+	Vehicle                     = require(ReplicatedStorage.Vehicle.VehicleUtils),
+	GunItem                     = require(ReplicatedStorage.Game.Item.Gun),
+	GuardNPC                    = require(ReplicatedStorage.GuardNPC.GuardNPCShared),
+	TagUtils                    = require(ReplicatedStorage.Tag.TagUtils),
+	GunShopUI                   = require(ReplicatedStorage.Game.GunShop.GunShopUI),
+	CharUtils                   = require(ReplicatedStorage.Game.CharacterUtil),
+	NpcShared                   = require(ReplicatedStorage.GuardNPC.GuardNPCShared),
+	SafeConsts                  = require(ReplicatedStorage.Safes.SafesConsts),
+	CartSystem                  = require(ReplicatedStorage.Game.Cart.CartSystem),
+	TombSystem                  = require(ReplicatedStorage.Game.Robbery.TombRobbery.TombRobberySystem),
+	ItemSystem                  = require(ReplicatedStorage.Game.ItemSystem.ItemSystem),
+	BossConsts                  = require(ReplicatedStorage.MansionRobbery.BossNPCConsts),
+	PuzzleFlow                  = require(ReplicatedStorage.Game.Robbery.PuzzleFlow),
+	AlexChassis                 = require(ReplicatedStorage.Module.AlexChassis),
+	Notification                = require(ReplicatedStorage.Game.Notification),
+	MansionUtils                = require(ReplicatedStorage.MansionRobbery.MansionRobberyUtils),
+	Confirmation                = require(ReplicatedStorage.Module.Confirmation),
+	TeamChooseUI                = require(ReplicatedStorage.TeamSelect.TeamChooseUI),
+	BulletEmitter               = require(ReplicatedStorage.Game.ItemSystem.BulletEmitter),
+	DartDispenser               = require(ReplicatedStorage.Game.DartDispenser.DartDispenser),
+	CharacterAnim               = require(ReplicatedStorage.Game.CharacterAnim),
+	RobberyConsts               = require(ReplicatedStorage.Robbery.RobberyConsts),
+	ButtonService               = require(ReplicatedStorage.App.BigButtonService),
+	MilitaryTurret              = require(ReplicatedStorage.Game.MilitaryTurret.MilitaryTurret),
+	DefaultActions              = require(ReplicatedStorage.Game.DefaultActions),
+}
 
 if FH_DEBUG then
 	print("[FarmHub (DEBUG)]: Loaded enviroment modules.")
@@ -1923,8 +1989,8 @@ local function OnRobbery(store)
             Url = Settings.WebhookURL,
             Method = "POST",
             Body = HttpService:JSONEncode({
-            	["content"] = "``` " .. Player.Name .. " completed " .. store .. "!\n> **Money Made:** `$" .. FormatCash(MoneyMade) .. "`\n> **Time Elapsed:** `" .. TickToHM(TimeElapsed) .. "```",
-                ["username"] = "FarmHub Premium 👑 (.gg/tempcode) FarmHub AutoRob (fixed) By Hydraded",
+            	["content"] = "# " .. Player.Name .. " completed " .. store .. "!\n> **Money Made:** `$" .. FormatCash(MoneyMade) .. "`\n> **Time Elapsed:** `" .. TickToHM(TimeElapsed) .. "`",
+                ["username"] = "FarmHub Premium 👑 (.gg/farmhub)",
             }),
             Headers = {
                 ["Content-Type"] = "application/json"
@@ -1952,7 +2018,7 @@ RemoteEvent.OnClientEvent:Connect(function(Hash, ...) -- thanks 0xmin
 					},
 					Body = HttpService:JSONEncode(
 						{
-							username = "FarmHub Premium 👑 (.gg/tempcode)",
+							username = "FarmHub Premium 👑 (.gg/farmhub)",
 							content = "# " .. Args[1] .. "\n> Alerting @everyone"
 						}
 					)
@@ -2201,11 +2267,7 @@ local function RobJewelryStore()
                 Character:PivotTo(CFrame.lookAt((box.Position + Vector3.new(0, 2.25, 2.25)), box.Position))
                 BreakFunc = tick()
                 repeat
-		while true do 
                     AttemptPunch()
-wait()
-					end
-		
                     task.wait(0.25)
                 until box.Transparency == 1 or tick() - BreakFunc > 6 or not Robbery.Jewelry.Open 
             end
@@ -2360,6 +2422,7 @@ local function RobPowerPlant()
     
 		SetStatus("Power Plant", "Teleporting to volcano..")
 		VehicleTP(NewCFrame(2286, 19, -2060))
+		task.wait(0.1)
 	
 		VehicleDirectTP(NewCFrame(2275, 25, -2127))
 		VehicleDirectTP(NewCFrame(2213, 25, -2475))
@@ -2421,10 +2484,10 @@ local function RobCargoTrain()
     
     ExitVehicle()
     BringPlatform()
-    task.wait(0.1)
+    task.wait(0.2)
     repeat task.wait() until Gold.CFrame.Z > -5250
     Platform.CFrame = CFrame.new(0, 0, 0)
-    wait()
+    task.wait(0.5)
 
     BreakFunc = tick()
     repeat
@@ -2828,6 +2891,7 @@ local function RobMansion()
     BringPlatform()
 end
 
+--[[
 local function robCasino()
     if not settings.includeCasino then return end escape()
     setStat("Going to the casino")
@@ -2882,7 +2946,7 @@ local function robCasino()
     setStat("Casino success!")
     movePlatform()
 end
-
+--]]
 
 local function RobCasino()
     if not Robbery.Casino.Enabled then return end Escape("Casino")
@@ -2900,11 +2964,11 @@ local function RobCasino()
 	end
 
     local Hacked = false
-    for _, v in pairs(Casino.Computers:GetChildren()) do
-       if v.Display.BrickColor == BrickColor.new("Lime green") then
-          Hacked = true
-    end
-    end
+    -- for _, v in pairs(Casino.Computers:GetChildren()) do
+    --      if v.Display.BrickColor == BrickColor.new("Lime green") then
+    --          Hacked = true
+    --      end
+    -- end
 
     pcall(function()
         for _, v in pairs(Casino.CamerasMoving:GetChildren()) do
@@ -2930,7 +2994,7 @@ local function RobCasino()
     SetStatus("Casino", "Teleporting to robbery..")
     BringPlatform()
 	ExitVehicle()
-	wait()
+	wait(2)
 	
     if not Hacked then        
         SetStatus("Casino", "Opening robbery..")
@@ -2958,7 +3022,7 @@ local function RobCasino()
 	end
 
 	SetStatus("Casino", "Waiting..")
-    wait()
+    wait(5)
 	
     SetStatus("Casino", "Collecting cash..")
 	Robbery.Casino.Robbed = true
@@ -2968,7 +3032,7 @@ local function RobCasino()
 		for _, v in pairs(Casino.Loots:GetChildren()) do
 			for i = 1, 20 do
 				Root.CFrame = v.CFrame
-				wait(0.01)
+				wait(0.1)
 				v.CasinoLootCollect:FireServer()
 
 				if IsBagFull() then
@@ -2979,7 +3043,7 @@ local function RobCasino()
 	end
 
 	SetStatus("Casino", "Waiting..")
-
+	wait(5)
 	SetStatus("Casino", "Teleporting to volcano..")
 	VehicleTP(NewCFrame(2286, 19, -2060))
 	task.wait(0.1)
@@ -3131,7 +3195,7 @@ local function RobOilRig()
 		SmallTP(NewCFrame(-2900, 165, -4049))
 		repeat 
 			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(false)
-			wait(0.1)
+			wait(1.5)
 			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(true)
 		until Player.Folder:FindFirstChild("Key")
 		SmallTP(NewCFrame(-2893, 165, -4084))
@@ -3396,7 +3460,7 @@ Robbery.CargoTrain.Callback     = RobCargoTrain
 Robbery.PassengerTrain.Callback = RobPassengerTrain
 Robbery.CargoPlane.Callback     = RobCargoPlane
 Robbery.CargoShip.Callback      = RobCargoShip
-Robbery.Tomb.Callback           = function() end
+-- Robbery.Tomb.Callback           = function() end
 Robbery.Casino.Callback         = RobCasino
 Robbery.Mansion.Callback        = RobMansion
 Robbery.OilRig.Callback         = RobOilRig
@@ -3541,14 +3605,7 @@ function SwitchServer(SmallServer)
 	AutoRobbing = false
 	SwitchingServer = true
 
-	queue_on_teleport([[
-		print("qyueyue")
-		getgenv().ServerHopped = true
-		getgenv().StartingMoney = ]] .. getgenv().StartingMoney .. [[
-		getgenv().StartingTime = ]] .. getgenv().StartingTime .. [[
-		print("eyeqy:")
-	]])
-		
+
 	while true do
 		pcall(function()
 			local AvailableServers = {}
@@ -3677,6 +3734,12 @@ function ToggleAutorob(bool)
 end
 
 
+ForEvery(5, function(stop)
+	-- save settings
+	Pcall(function()
+		SaveFile("AutoRobSettings.json",  HttpService:JSONEncode(Settings))
+	end, "SaveSettings")
+end)
 
 -------------------->>  Prestart Autorob  <<--------------------
 
@@ -5774,7 +5837,7 @@ local SettingsTab = MainWindow:CreateTab("Settings")
 local MiscTab = MainWindow:CreateTab("Miscellaneous")
 
 local MainTab = HomeTab:CreateSection("Autorob")
-local StatusTab = HomeTab:CreateSection("Statuses", "Right")
+
 local CreditsSec = HomeTab:CreateSection("Credits")
 local AboutSec = HomeTab:CreateSection("About", "Right")
 
@@ -5784,14 +5847,12 @@ end, { Enabled = Settings.Enabled })
 
 local StoreLbl = MainTab:CreateTextlabel("Store: None")
 local StatusLbl = MainTab:CreateTextlabel("Status: Autorob disabled.")
-local MoneyLbl = StatusTab:CreateTextlabel("Money Earned: $0")
-local TimeLbl = StatusTab:CreateTextlabel("Time Elapsed: 0h/0m")
-local RatesLbl = StatusTab:CreateTextlabel("Estimated Rates: $0/hr")
 
-CreditsSec:CreateTextlabel("@fuck you fay: Scripting")
+CreditsSec:CreateTextlabel("@hydradedgaming: Fixing")
+CreditsSec:CreateTextlabel("@fuck you fayy: Scripting")
 CreditsSec:CreateTextlabel("@itztempy0: Scripting")
 CreditsSec:CreateTextlabel("@harmonicdust: UI Library")
-CreditsSec:CreateTextlabel("@hydradedgaming: fixed bugs (fuck fay)")
+
 AboutSec:CreateKeybind("Toggle Gui", MainWindow.Toggle, { Bind = Enum.KeyCode.RightShift })
 
 
