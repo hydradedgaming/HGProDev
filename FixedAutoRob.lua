@@ -1,29 +1,5 @@
---[[
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Author: @babyfayy333 on discord & github
-Discord: https://discord.gg/4Cxn5et44e
-Problems: Autorob is not complete but it will work.
-Notes: Fuck you tempy, banning me after i did everything.
-Usage: You may use this for knowlage, you may not skid, resell this code.
-
---]]
-
--------------------->> Farmhub Script Macros <<--------------------
-
-if not LPH_OBFUSCATED then
-	FH_DEBUG = true
-	FH_DEVELOPER = true
-end
-
--------------------->> Load Game <<--------------------
-
 if not game:IsLoaded() then 
-	if FH_DEBUG then
-		print("[FarmHub (DEBUG)]: Waiting for game to load..")
+	
 	end
 
 	game.Loaded:Wait() 
@@ -34,53 +10,21 @@ end
 
 local TimeStarted = tick()
 if getgenv().Farmhub then
-	--return warn("// Already Executed!")
 else
-	if FH_DEBUG then
-		print("[FarmHub (DEBUG)]: Marked Farmhub as injected.")
-	end
+	
 	getgenv().Farmhub = true
 end
 
 if game.PlaceId ~= 606849621 then
-	if FH_DEBUG then
-		print("[FarmHub (DEBUG)]: Incorrect PlaceID, returning.")
+	
 	end
 	return
 end
 
--------------------->> Directory Functions <<--------------------
 
-local function GetDirectory()
-	local Directory = "FarmHub"
-	if not isfolder(Directory) then
-		makefolder(Directory)
-	end
-	return Directory
-end
-
-local function SaveFile(name, data)
-	local success, error = pcall(function()
-		writefile(GetDirectory() .. "\\" .. name, data)
-	end)
-	return success
-end
-
-local function LoadFile(name)
-	local success, data = pcall(function()
-		return readfile(GetDirectory() .. "\\" .. name)
-	end)
-	return success and data or nil
-end
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Setup directory system & functions.")
-end
 
 -------------------->> Statuueses <<--------------------
---o i hate this
-
-function SetStatus(store, stat)
+function SetStatus(store, stat, "(fuck you fay)")
 	print("[" .. store .. "]: " .. stat)
 end
 
@@ -116,58 +60,36 @@ local ReplicatedStorage         = Services.ReplicatedStorage
 local PathfindingService        = Services.PathfindingService
 local MarketplaceService        = Services.MarketplaceService
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Got local game services.")
-end
+
 
 -------------------->> Settings Importation <<--------------------
-
+while true do 
 local Settings = {
-	Enabled                     = false,
-	KillAura                    = false,
+	Enabled                     = true,
+	KillAura                    = true,
 	NotifyOpenings              = true,
-	ChatOpenings                = false,
+	ChatOpenings                = true,
 	AntiRagdoll                 = true,
 	AntiSkydive                 = true,
-	LoopTirePop                 = false,
-	AutoLockVehicle             = false,
-	AutoKickPlayers             = false,
-	CopRange                    = 110,
+	LoopTirePop                 = true,
+	AutoLockVehicle             = true,
+	AutoKickPlayers             = true,
+	CopRange                    = 30,
 	Cooldown                    = 0,
 	AwaitReward                 = true,
-	HyperFocus                  = false,             
-	PlayerSpeed                 = 70,
-	SkySpeed                    = 95,
-	VehicleSpeed                = 350,
-	LogHook                     = false,
+	HyperFocus                  = true,             
+	PlayerSpeed                 = 100,
+	SkySpeed                    = 120,
+	VehicleSpeed                = 450,
+	LogHook                     = true,
 	WebhookURL                  = "",
-	AlertEarnings               = false,
-	AlertHyper                  = false,
-	ServerHop                   = false,
+	AlertEarnings               = true,
+	AlertHyper                  = true,
+	ServerHop                   = true,
 	RobberyDisabled             = {},
 }
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded default settings.")
+wait(0.1)
 end
-
-local SettingsFile = LoadFile("AutoRobSettings.json")
-
-if SettingsFile then
-	local Success, Data = pcall(function()
-		return game:GetService("HttpService"):JSONDecode(SettingsFile)
-	end)
-
-	if Success then
-		for i, v in pairs(Data) do
-			Settings[i] = v
-		end
-	end
-    if FH_DEBUG then
-        print("[FarmHub (DEBUG)]: Imported new settings from - workspace/Farmhub/AutoRobSettings.json")
-    end
-end
-
 -------------------->> Client Player <<--------------------
 
 local Player                    = Players.LocalPlayer
@@ -189,13 +111,10 @@ local RobberyState              = ReplicatedStorage.RobberyState
 local BagLabel                  = RobberyMoneyGui.Container.Bottom.Progress.Amount
 local SetIdentity               = setidentity or set_thread_identity or (syn and syn.set_thread_identity) or setcontext or setthreadcontext or set_thread_context
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Setup local player & variables.")
-end
-
 -------------------->> Anticheat Functions <<--------------------
 
 local CheatCheck = nil
+LPH_NO_VIRTUALIZE(function()
 	for i, v in pairs(getgc(true)) do
 		if typeof(v) == "function" then
 			CheatCheck = v
@@ -213,23 +132,15 @@ local CheatCheck = nil
 			GetSpawnTime = v.getRemainingDebounce
 		end
 	end
+end)()
 
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Scanned GC successfully.")
-	print("[FarmHub (DEBUG)]: CheatCheck: " .. tostring(CheatCheck))
-	print("[FarmHub (DEBUG)]: ExitVehicle: " .. tostring(ExitFunc))
-	print("[FarmHub (DEBUG)]: GetSpawnTime: " .. tostring(GetSpawnTime))
-end
 
 -------------------->> Client Statisitcs <<--------------------
 
 getgenv().StartingMoney         = getgenv().StartingMoney or Leaderstats:WaitForChild("Money").Value
 getgenv().StartingTime          = getgenv().StartingTime or tick()
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: (Pre)Loaded client stats.")
-end
+
 
 -------------------->> Formatting Stuff <<--------------------
 
@@ -266,9 +177,6 @@ function SplitCaps(robbery)
 	return (robbery:gsub("%u", " %1"))
 end
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded formatting functions.")
-end
 
 -------------------->> Client Modules <<--------------------
 
@@ -305,9 +213,6 @@ local Modules                   = {
 	DefaultActions              = require(ReplicatedStorage.Game.DefaultActions),
 }
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded enviroment modules.")
-end
 
 -------------------->> Default Modules <<--------------------
 
@@ -324,9 +229,6 @@ local DefaultModules            = {
 }
 
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Hookfunc enviroment modules success.")
-end
 
 -------------------->> Module Tables <<--------------------
 
@@ -341,9 +243,6 @@ local function Notif(text, time)
 	require(ReplicatedStorage.Game.Notification).new({ Text = text, Time = time })
 end 
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded module tables.")
-end
 
 -------------------->> Roblox Functions <<--------------------
 
@@ -392,9 +291,6 @@ local function WaitUntil(Func, Timeout, Interval)
     return tick() - WaitStart > Timeout
 end
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Rewrote Roblox functions.")
-end
 
 -------------------->> Math Functions <<--------------------
 
@@ -409,10 +305,6 @@ end
 
 local function DistanceXYZ(pos1, pos2)
 	return (pos1 - pos2).Magnitude
-end
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded math functions.")
 end
 
 -------------------->> Robbery Rendering <<--------------------
@@ -479,11 +371,6 @@ end
 getgenv().Loaded = true
 Camera.CameraType = "Custom"
 task.wait(0.3)
-
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded robbery load awaiters.")
-end
 
 -------------------->> Data Tables <<--------------------
 
@@ -814,9 +701,6 @@ local JewelryPaths = {
 	}
 }
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded & formatted data tables.")
-end
 
 -------------------->> Robbery Status <<--------------------
 
@@ -900,9 +784,6 @@ for k,v in pairs(Settings.RobberyDisabled) do
     Robbery[k].Enabled = not v
 end
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Hooked RState to " .. tostring(Robbery))
-end
 
 -------------------->> Raycast Functions <<--------------------
 
@@ -991,9 +872,6 @@ CollectionService:GetInstanceAddedSignal("Tree"):Connect(Ignore)
 CollectionService:GetInstanceAddedSignal("NoClipAllowed"):Connect(Ignore)
 CollectionService:GetInstanceAddedSignal("Door"):Connect(OnDoorAdded)
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded raycast checks / ignores")
-end
 
 -------------------->> Player Functions <<--------------------
 
@@ -1021,9 +899,6 @@ end
 
 Player.CharacterAdded:Connect(SetupCharacter)
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded client character parts")
-end
 
 -------------------->> Hooking Functions <<--------------------
 
@@ -1054,9 +929,6 @@ Modules.Notification.new = function(NotificationData)
 	return DefaultModules.Notification_new(NotificationData)
 end
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Module hooked validation passed #2")
-end
 
 -------------------->> Vehicle Functions <<--------------------
 
@@ -1160,9 +1032,7 @@ task.spawn(function()
 	end
 end)
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Loaded vehicle functions")
-end
+
 
 -------------------->> Firearm Functions <<--------------------
 
@@ -1240,9 +1110,6 @@ task.spawn(function()
 	end
 end)
 
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Created custom firearm functions.")
-end
 
 -------------------->> Teleportation Functions <<--------------------
 
@@ -1954,14 +1821,14 @@ end
 
 local function Cooldown()
 	if Settings.AwaitReward and Player.PlayerGui.AppUI:FindFirstChild("RewardSpinner") then
-		SetStatus("Safe Platform", "Awaiting reward spin..")
+		SetStatus("Safe Platform", "Awaiting reward spin..", "(fuck you fay)")
 		repeat wait() until Player.PlayerGui.AppUI:FindFirstChild("RewardSpinner") == nil
 		
 	end
 
 	if Settings.Cooldown ~= 0 then
 		for i = 1, Settings.Cooldown, -1 do
-			SetStatus("Safe Platform", "Cooling down.. " .. i .. "s")
+			SetStatus("Safe Platform", "Cooling down.. " .. i .. "s", "(fuck you fay)")
 			wait(1)
 		end
 
@@ -2043,7 +1910,7 @@ local function Escape(title)
 	end
 
 	if Player.Team == Teams.Prisoner or IsArrested() then
-		SetStatus(title, "Waiting..") 
+		SetStatus(title, "Waiting..", "(fuck you fay)") 
 	    if IsArrested() then
 	        repeat task.wait() until not IsArrested()
         end
@@ -2057,7 +1924,7 @@ local function Escape(title)
             end
         end
 
-		SetStatus(title, "Escaping..") 
+		SetStatus(title, "Escaping..", "(fuck you fay)") 
 		Root.CFrame = CFrame.new(Root.CFrame.X, 200, Root.CFrame.Z)
 		SmallTP(CFrame.new(-1007, 73, -1759))
 
@@ -2071,7 +1938,7 @@ local function Escape(title)
 	else
         for i, v in pairs(VolcanoPos) do
             if (Root.Position - v).Magnitude < 100 then
-				SetStatus(title, "Escaping..")
+				SetStatus(title, "Escaping..", "(fuck you fay)")
                 PathfindTP(Vector3.new(2185, 19, -2663))
                 ChainTP({
                     CFrame.new(2172, 28, -2717),
@@ -2114,13 +1981,13 @@ local function RobBank()
 	local Path = BankPaths[Layout.Name]
 
 	if Path then
-        SetStatus("Bank", "Teleporting to robbery..")
+        SetStatus("Bank", "Teleporting to robbery..", "(fuck you fay)")
 		VehicleInstantTP(CFrame.new(41, 18, 926))
 
-        SetStatus("Bank", "Opening robbery..")
+        SetStatus("Bank", "Opening robbery..", "(fuck you fay)")
 		repeat task.wait() until Robbery["Bank"].Value ~= 1 
 
-        SetStatus("Bank", "Starting robbery..")
+        SetStatus("Bank", "Starting robbery..", "(fuck you fay)")
 		if Robbery["Bank"].Value == 3 then
 			task.wait(2)
 			return error()
@@ -2138,11 +2005,11 @@ local function RobBank()
 		end
 
 		ChainTP(Path)
-        SetStatus("Bank", "Collecting cash..")
+        SetStatus("Bank", "Collecting cash..", "(fuck you fay)")
 		Robbery["Bank"].Robbed = true
 		repeat task.wait() until IsBagFull() or AreCopsClose(Settings.CopRange)
 
-        SetStatus("Bank", "Exiting robbery..")
+        SetStatus("Bank", "Exiting robbery..", "(fuck you fay)")
 		ChainTP(FlipTable(Path))
 		ChainTP({
 			CFrame.new(41, 19, 926),
@@ -2150,7 +2017,7 @@ local function RobBank()
 			CFrame.new(5, 19, 864)
 		})
 
-        SetStatus("Bank", "Robbery Complete!")
+        SetStatus("Bank", "Robbery Complete!", "(fuck you fay)")
 		EnterVehicle()
 		task.wait(0.45)
 		OnRobbery("Bank")
@@ -2166,13 +2033,13 @@ local function RobCraterBank()
 	local Path = BankPaths[Layout.Name]
 
 	if Path then
-        SetStatus("Crater Bank", "Teleporting to robbery..")
+        SetStatus("Crater Bank", "Teleporting to robbery..", "(fuck you fay)")
         VehicleInstantTP(CFrame.new(-647, 20, -5990))
 
-        SetStatus("Crater Bank", "Opening robbery..")
+        SetStatus("Crater Bank", "Opening robbery..", "(fuck you fay)")
 		repeat task.wait() until Robbery.CraterBank.Value ~= 1 
 
-        SetStatus("Crater Bank", "Starting robbery..")
+        SetStatus("Crater Bank", "Starting robbery..", "(fuck you fay)")
 		if Robbery.CraterBank.Value == 3 then
 			task.wait(2)
 			return error()
@@ -2190,11 +2057,11 @@ local function RobCraterBank()
 		end
 
 		ChainTP(Path)
-        SetStatus("Crater Bank", "Collecting cash..")
+        SetStatus("Crater Bank", "Collecting cash..", "(fuck you fay)")
 		Robbery.CraterBank.Robbed = true
 		repeat task.wait() until IsBagFull() or AreCopsClose(Settings.CopRange)
 
-        SetStatus("Crater Bank", "Exiting robbery..")
+        SetStatus("Crater Bank", "Exiting robbery..", "(fuck you fay)")
 		ChainTP(FlipTable(Path))
         ChainTP({
             CFrame.new(-647, 24, -5990),
@@ -2205,7 +2072,7 @@ local function RobCraterBank()
             CFrame.new(-652, 20, -6091)
         })
 
-        SetStatus("Crater Bank", "Robbery Complete!")
+        SetStatus("Crater Bank", "Robbery Complete!", "(fuck you fay)")
 		EnterVehicle()
 		task.wait(0.45)
 		OnRobbery("Crater Bank")
@@ -2216,17 +2083,17 @@ end
 local function RobJewelryStore()
     if not Robbery.Jewelry.Enabled then return end Escape("Jewelry Store")
 
-	-- if not Jewelry then
-	-- 	ExitVehicle()
-	-- 	WaitUntil(function()
-	-- 		Root.CFrame = NewCFrame(Robbery.Jewelry.GetPos())
-	-- 		return Jewelry ~= nil
-	-- 	end, 5)
+	if not Jewelry then
+		ExitVehicle()
+ 	WaitUntil(function()
+			Root.CFrame = NewCFrame(Robbery.Jewelry.GetPos())
+ 		return Jewelry ~= nil
+		end, 5)
 
-	-- 	if Jewelry == nil then
-	-- 		return error()
-	-- 	end
-	-- end
+		if Jewelry == nil then
+			return error()
+		end
+	end
 
 	local Jewelry = Workspace:FindFirstChild("Jewelrys"):GetChildren()[1]
 	if not Jewelry then return end
@@ -2246,13 +2113,13 @@ local function RobJewelryStore()
             end
         end
 
-        SetStatus("Jewelry Store", "Teleporting to robbery..")
+        SetStatus("Jewelry Store", "Teleporting to robbery..", "(fuck you fay)")
         firetouchinterest(Root, Jewelry.WindowEntry.LaserTouch, 0)
         task.wait()
         firetouchinterest(Root, Jewelry.WindowEntry.LaserTouch, 1)
         VehicleInstantTP(CFrame.new(98, 19, 1311))
         
-        SetStatus("Jewelry Store", "Collecting jewels..")
+        SetStatus("Jewelry Store", "Collecting jewels..", "(fuck you fay)")
         KillAuraPaused = true
         Robbery.Jewelry.Robbed = true
 
@@ -2276,7 +2143,7 @@ local function RobJewelryStore()
             end
         end
 
-		SetStatus("Jewelry Store", "Exiting Robbery..")
+		SetStatus("Jewelry Store", "Exiting Robbery..", "(fuck you fay)")
         KillAuraPaused = false
         PathfindTP(Vector3.new(107, 22, 1343))     
 
@@ -2296,15 +2163,15 @@ local function RobJewelryStore()
         })
 
         task.wait(0.5)
-		SetStatus("Jewelry Store", "Teleporting to base..")
+		SetStatus("Jewelry Store", "Teleporting to base..", "(fuck you fay)")
         Root.CFrame = CFrame.new(100, 119, 1284)
         task.wait(0.5)
         BigTP(CFrame.new(-276, 18, 1606)) 
 
-        SetStatus("Jewelry Store",  "Selling..")
+        SetStatus("Jewelry Store",  "Selling..", "(fuck you fay)")
         repeat wait() until not RobberyMoneyGui.Enabled
 
-        SetStatus("Jewelry Store", "Robbery Complete!")
+        SetStatus("Jewelry Store", "Robbery Complete!", "(fuck you fay)")
         EnterVehicle()
         task.wait(0.45)
         OnRobbery("Jewelry Store")
@@ -2313,16 +2180,16 @@ local function RobJewelryStore()
 end
 
 local function RobMuseum()
-	-- if not Settings.Enabled then return end
+
 	if not Robbery.Museum.Enabled then return end Escape("Museum")
 
-    SetStatus("Museum", "Teleporting to robbery..")
+    SetStatus("Museum", "Teleporting to robbery..", "(fuck you fay)")
 	VehicleInstantTP(NewCFrame(1159, 102, 1237))
 	Robbery.Museum.Robbed = true
 	wait(0.5)
 
 	local Timeout = tick()
-    SetStatus("Museum", "Collecting items..")
+    SetStatus("Museum", "Collecting items..", "(fuck you fay)")
 	repeat 
 		for _, spec in pairs(Specs) do
 			if spec.Name:sub(1, 5) == "Grab " and spec.Part and DistanceXZ(Root.Position, spec.Part.Position) <= 100 then
@@ -2340,13 +2207,13 @@ local function RobMuseum()
 	end
 
 	wait(0.5)
-    SetStatus("Museum", "Exiting Robbery..")
+    SetStatus("Museum", "Exiting Robbery..", "(fuck you fay)")
 	ChainTP({
 		NewCFrame(1171, 102, 1221),
 		NewCFrame(1183, 102, 1206)
 	})
 
-    SetStatus("Museum", "Teleporting to volcano..")
+    SetStatus("Museum", "Teleporting to volcano..", "(fuck you fay)")
 	VehicleTP(NewCFrame(2286, 19, -2060))
 	task.wait(0.1)
 
@@ -2370,18 +2237,18 @@ end
 
 local function RobPowerPlant()
     if not Robbery.PowerPlant.Enabled then return end Escape("Power Plant")
-    SetStatus("Power Plant", "Teleporting to robbery..")
+    SetStatus("Power Plant", "Teleporting to robbery..", "(fuck you fay)")
     VehicleTP(CFrame.new(61, 21, 2322), true)
     task.wait(0.5)
     Root.CFrame = CFrame.new(68, 21, 2324)
     task.wait(0.2)
-    SetStatus("Power Plant", "Opening robbery..")
+    SetStatus("Power Plant", "Opening robbery..", "(fuck you fay)")
     SmallTP(CFrame.new(88, 22, 2324))
 
     BreakFunc = tick()
     repeat task.wait() until Puzzle.IsOpen or tick() - BreakFunc > 5
     if not Puzzle.IsOpen then
-        SetStatus("Power Plant", "Robbery Failed!")
+        SetStatus("Power Plant", "Robbery Failed!", "(fuck you fay)")
         EnterVehicle()
         task.wait(0.45)
         BringPlatform()
@@ -2389,7 +2256,7 @@ local function RobPowerPlant()
     end
 
     if SolveNumberLink() then
-        SetStatus("Power Plant", "Starting robbery..")
+        SetStatus("Power Plant", "Starting robbery..", "(fuck you fay)")
 
         ChainTP({
             CFrame.new(93, 30, 2336),
@@ -2399,13 +2266,13 @@ local function RobPowerPlant()
             CFrame.new(119, -9, 2099)
         })
 
-        SetStatus("Power Plant", "Collecting uranium..")
+        SetStatus("Power Plant", "Collecting uranium..", "(fuck you fay)")
         BreakFunc = tick()
         repeat task.wait() until Puzzle.IsOpen or tick() - BreakFunc > 5
         pcall(SolveNumberLink)
 
         Robbery.PowerPlant.Robbed = true
-        SetStatus("Power Plant", "Exiting robbery..")
+        SetStatus("Power Plant", "Exiting robbery..", "(fuck you fay)")
         ChainTP({
             CFrame.new(93, -13, 2130),
             CFrame.new(87, -37, 2115),
@@ -2420,14 +2287,14 @@ local function RobPowerPlant()
             CFrame.new(63, 21, 2324)
         })
     
-		SetStatus("Power Plant", "Teleporting to volcano..")
+		SetStatus("Power Plant", "Teleporting to volcano..", "(fuck you fay)")
 		VehicleTP(NewCFrame(2286, 19, -2060))
 		task.wait(0.1)
 	
 		VehicleDirectTP(NewCFrame(2275, 25, -2127))
 		VehicleDirectTP(NewCFrame(2213, 25, -2475))
 		VehicleDirectTP(NewCFrame(2279, 25, -2551))
-		SetStatus("Power Plant", "Selling..")
+		SetStatus("Power Plant", "Selling..", "(fuck you fay)")
 		GetVehicleModel().PrimaryPart.Anchored = true
         if Player.PlayerGui:FindFirstChild("PowerPlantRobberyGui") then
             GetVehicleModel():SetPrimaryPartCFrame(CFrame.new(2279, 70, -2551))
@@ -2438,7 +2305,7 @@ local function RobPowerPlant()
 
 		VehicleDirectTP(NewCFrame(2291, 20, -2593))
         repeat task.wait() until not PlayerGui:FindFirstChild("PowerPlantRobberyGui")
-		SetStatus("Power Plant", "Robbery Complete!")
+		SetStatus("Power Plant", "Robbery Complete!", "(fuck you fay)")
 	
 		VehicleDirectTP(NewCFrame(2279, 25, -2551))
 		VehicleDirectTP(NewCFrame(2213, 25, -2475))
@@ -2449,7 +2316,7 @@ local function RobPowerPlant()
 		OnRobbery("Power Plant")
 		BringPlatform()
     else
-        SetStatus("Power Plant", "Robbery Failed!")
+        SetStatus("Power Plant", "Robbery Failed!", "(fuck you fay)")
         EnterVehicle()
         task.wait(0.45)
         BringPlatform()
@@ -2458,7 +2325,7 @@ local function RobPowerPlant()
 end
 
 local function RobCargoTrain()
-	if not Robbery.CargoTrain.Enabled then return end Escape("Cargo Train")
+	if not Robbery.CargoTrain.Enabled then return end Escape("Cargo Train", "(fuck you fay)")
 
 	local BoxCar = nil
     local Gold = nil
@@ -2475,7 +2342,7 @@ local function RobCargoTrain()
         return false
     end
 
-    SetStatus("Cargo Train", "Teleporting to cargo train!")
+    SetStatus("Cargo Train", "Teleporting to cargo train!", "(fuck you fay)")
     for _, spec in pairs(Specs) do  
         if spec.Name == "Breach Vault" or spec.Name == "Open Door" then
             spec:Callback(true)
@@ -2498,15 +2365,15 @@ local function RobCargoTrain()
         end
     until RobberyMoneyGui.Enabled and tick() - BreakFunc > 4
     
-    SetStatus("Cargo Train", "Collecting cash..")
+    SetStatus("Cargo Train", "Collecting cash..", "(fuck you fay)")
     Robbery.CargoTrain.Robbed = true
     repeat task.wait() until IsBagFull() or not RobberyMoneyGui.Enabled
 
-    SetStatus("Cargo Train", "Waiting..")
+    SetStatus("Cargo Train", "Waiting..", "(fuck you fay)")
     repeat task.wait() until not Raycast(Root.Position + Vector3.new(0, 8, 0), Vector3.new(0, 1000, 0)) 
     task.wait(1)
 
-    SetStatus("Cargo Train", "Robbery Complete!")
+    SetStatus("Cargo Train", "Robbery Complete!", "(fuck you fay)")
     OnRobbery("Cargo Train")
     BringPlatform()
 end
@@ -2514,11 +2381,11 @@ end
 local function RobPassengerTrain()
 	-- if not Settings.Enabled then return end
 	if not Robbery.PassengerTrain.Enabled then return end Escape("Passenger Train")
-    SetStatus("Passenger Train", "Teleporting to robbery..")
+    SetStatus("Passenger Train", "Teleporting to robbery..", "(fuck you fay)")
     BringPlatform()
     wait(1)
 	BreakFunc = tick()
-    SetStatus("Passenger Train", "Collecting items..")
+    SetStatus("Passenger Train", "Collecting items..", "(fuck you fay)")
 	repeat task.wait()
 		for _, spec in pairs(Specs) do
 			if spec.Name:sub(1, 5) == "Grab " and spec.Part and Trains:IsAncestorOf(spec.Part) then 
@@ -2534,17 +2401,17 @@ local function RobPassengerTrain()
 	until IsBagFull() or tick() - BreakFunc > 10 or not Robbery.PassengerTrain.Open
 	Robbery.PassengerTrain.Robbed = true
 
-    SetStatus("Passenger Train", "Teleporting to volcano..")
+    SetStatus("Passenger Train", "Teleporting to volcano..", "(fuck you fay)")
 	VehicleTP(NewCFrame(2286, 19, -2060))
 	task.wait(0.1)
 
 	VehicleDirectTP(NewCFrame(2275, 25, -2127))
 	VehicleDirectTP(NewCFrame(2213, 25, -2475))
 	VehicleDirectTP(NewCFrame(2279, 25, -2551))
-    SetStatus("Passenger Train", "Selling..")
+    SetStatus("Passenger Train", "Selling..", "(fuck you fay)")
 	VehicleDirectTP(NewCFrame(2291, 20, -2593))
 	repeat task.wait() until not RobberyMoneyGui.Enabled
-    SetStatus("Passenger Train", "Robbery Complete!")
+    SetStatus("Passenger Train", "Robbery Complete!", "(fuck you fay)")
 
 	VehicleDirectTP(NewCFrame(2279, 25, -2551))
 	VehicleDirectTP(NewCFrame(2213, 25, -2475))
@@ -2569,7 +2436,7 @@ local function RobCargoPlane()
 		end
 	end
 
-    SetStatus("Cargo Plane", "Teleporting to robbery..")
+    SetStatus("Cargo Plane", "Teleporting to robbery..", "(fuck you fay)")
 	GetVehicle()
 	BringPlatform()
 	task.wait(0.5)
@@ -2578,7 +2445,7 @@ local function RobCargoPlane()
 	BreakFunc = tick()
 
 	Robbery.CargoPlane.Robbed = true
-    SetStatus("Cargo Plane", "Collecting crate..")
+    SetStatus("Cargo Plane", "Collecting crate..", "(fuck you fay)")
 	repeat 
 		GetVehicleModel():SetPrimaryPartCFrame(NewCFrame(Robbery.CargoPlane.GetPos() + NewVector3(0, 5, 0)))
 		task.wait()
@@ -2590,13 +2457,13 @@ local function RobCargoPlane()
 		end
 	until IsBagFull()
 
-    SetStatus("Cargo Plane", "Teleporting to port..")
+    SetStatus("Cargo Plane", "Teleporting to port..", "(fuck you fay)")
 	VehicleTP(CFrame.new(-352, 21, 2057))
 
     SetStatus("Cargo Plane", "Selling..")
 
 	repeat wait() until not RobberyMoneyGui.Enabled
-    SetStatus("Cargo Plane", "Robbery Complete!")
+    SetStatus("Cargo Plane", "Robbery Complete!", "(fuck you fay)")
 	task.wait(0.45)
 	OnRobbery("Cargo Plane")
 	BringPlatform()
@@ -2627,7 +2494,7 @@ local function RobCargoShip()
 		end)
 
 		for i, v in pairs(Helis) do
-            SetStatus("Cargo Ship", "Teleporting to heli..")
+            SetStatus("Cargo Ship", "Teleporting to heli..", "(fuck you fay)")
 			VehicleTP(CFrame.new(v.Seat.CFrame.X, (v.Seat.CFrame.Y + 15), v.Seat.CFrame.Z), true)
 
 			if v.Seat and v.PrimaryPart then
@@ -2666,7 +2533,7 @@ local function RobCargoShip()
 		return error()
 	end
 
-    SetStatus("Cargo Ship", "Starting robbery..")
+    SetStatus("Cargo Ship", "Starting robbery..", "(fuck you fay)")
 	GetVehicleModel():SetPrimaryPartCFrame(CFrame.new(Root.CFrame.X, 650, Root.CFrame.Z))
 	task.wait(0.5)
 
@@ -2686,7 +2553,7 @@ local function RobCargoShip()
 		if not ShipCrate then break end
 		GetVehicleModel().Winch.RopeConstraint.Length = 10000  
 
-        SetStatus("Cargo Ship", "Collecting crate..")
+        SetStatus("Cargo Ship", "Collecting crate..", "(fuck you fay)")
 		repeat
 			pcall(function()
 				RopePull.CFrame = ShipCrate.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
@@ -2696,7 +2563,7 @@ local function RobCargoShip()
 		until RopePull.AttachedTo.Value or not Workspace:FindFirstChild("CargoShip") or not Ship.Crates:FindFirstChild("Crate")
 		task.wait(0.5)
 
-        SetStatus("Cargo Ship", "Selling..")
+        SetStatus("Cargo Ship", "Selling..", "(fuck you fay)")
 		pcall(function()
 			repeat
 				ShipCrate.PrimaryPart.Velocity, ShipCrate.PrimaryPart.RotVelocity = Vector3.new(), Vector3.new()
@@ -2711,7 +2578,7 @@ local function RobCargoShip()
 		task.wait(0.5)
 	end
 
-    SetStatus("Cargo Ship", "Robbery Complete!")
+    SetStatus("Cargo Ship", "Robbery Complete!", "(fuck you fay)")
 	Modules.Vehicle.Classes.Heli.attemptDropRope()
 	ExitVehicle()
 	OnRobbery("Cargo Ship")
@@ -2721,9 +2588,9 @@ end
 local function RobMansion()
     if not Robbery.Mansion.Enabled then return end Escape("Mansion")
 
-    SetStatus("Mansion", "Teleporting to robbery..")
+    SetStatus("Mansion", "Teleporting to robbery..", "(fuck you fay)")
     VehicleInstantTP(CFrame.new(3198, 65, -4611))
-    SetStatus("Mansion", "Opening robbery..")
+    SetStatus("Mansion", "Opening robbery..", "(fuck you fay)")
 
     BreakFunc = tick()
     repeat
@@ -2734,7 +2601,7 @@ local function RobMansion()
     until Modules.MansionUtils.isPlayerInElevator(MansionRobbery, Player) or tick() - BreakFunc > 6
 
     if not Modules.MansionUtils.isPlayerInElevator(MansionRobbery, Player) then
-        SetStatus("Mansion", "Robbery Failed!")
+        SetStatus("Mansion", "Robbery Failed!", "(fuck you fay)")
         ChainTP({
             CFrame.new(3197, 63, -4654),
             CFrame.new(3198, 65, -4611), 
@@ -2767,7 +2634,7 @@ local function RobMansion()
         instance:Remove()
     end
 
-	SetStatus("Mansion", "Starting robbery..")
+	SetStatus("Mansion", "Starting robbery..", "(fuck you fay)")
     ChainTP({
         CFrame.new(3202, -200, -4703),
         CFrame.new(3201, -200, -4679),
@@ -2800,7 +2667,7 @@ local function RobMansion()
         return unpack(arg)
     end
 
-    SetStatus("Mansion", "Killing boss..")
+    SetStatus("Mansion", "Killing boss..", "(fuck you fay)")
     if not Player.Folder:FindFirstChild("Pistol") then
         Humanoid.Health = 0
         return error()
@@ -2858,7 +2725,7 @@ local function RobMansion()
         end
 	end
 
-	SetStatus("Mansion", "Collecting cash..")
+	SetStatus("Mansion", "Collecting cash..", "(fuck you fay)")
     EquipPistol(false)
     repeat task.wait() until Player.PlayerGui.AppUI:FindFirstChild("RewardSpinner")
     KillAuraPaused = false
@@ -2873,7 +2740,7 @@ local function RobMansion()
 	end
 
     Platform.CFrame = CFrame.new(0, 0, 0)
-	SetStatus("Mansion", "Robbery Complete!")
+	SetStatus("Mansion", "Robbery Complete!", "(fuck you fay)")
     ChainTP({ 
         CFrame.new(3113, -204, -4440),
         CFrame.new(3096, -204, -4440),
@@ -2964,11 +2831,11 @@ local function RobCasino()
 	end
 
     local Hacked = false
-    -- for _, v in pairs(Casino.Computers:GetChildren()) do
-    --      if v.Display.BrickColor == BrickColor.new("Lime green") then
-    --          Hacked = true
-    --      end
-    -- end
+     for _, v in pairs(Casino.Computers:GetChildren()) do
+         if v.Display.BrickColor == BrickColor.new("Lime green") then
+             Hacked = true
+         end
+    end
 
     pcall(function()
         for _, v in pairs(Casino.CamerasMoving:GetChildren()) do
@@ -2991,13 +2858,13 @@ local function RobCasino()
         end
     end)
 
-    SetStatus("Casino", "Teleporting to robbery..")
+    SetStatus("Casino", "Teleporting to robbery..", "(fuck you fay)")
     BringPlatform()
 	ExitVehicle()
 	wait(2)
 	
     if not Hacked then        
-        SetStatus("Casino", "Opening robbery..")
+        SetStatus("Casino", "Opening robbery..", "(fuck you fay)")
         for _, v in pairs(Casino.Computers:GetChildren()) do
 			if v.Display.BrickColor == BrickColor.new("Really red") then
 				repeat 
@@ -3021,10 +2888,10 @@ local function RobCasino()
 		return error()
 	end
 
-	SetStatus("Casino", "Waiting..")
+	SetStatus("Casino", "Waiting..", "(fuck you fay)")
     wait(5)
 	
-    SetStatus("Casino", "Collecting cash..")
+    SetStatus("Casino", "Collecting cash..", "(fuck you fay)")
 	Robbery.Casino.Robbed = true
 
 	local Timeout = tick()
@@ -3042,19 +2909,19 @@ local function RobCasino()
         end
 	end
 
-	SetStatus("Casino", "Waiting..")
+	SetStatus("Casino", "Waiting..", "(fuck you fay)")
 	wait(5)
-	SetStatus("Casino", "Teleporting to volcano..")
+	SetStatus("Casino", "Teleporting to volcano..", "(fuck you fay)")
 	VehicleTP(NewCFrame(2286, 19, -2060))
 	task.wait(0.1)
 
 	VehicleDirectTP(NewCFrame(2275, 25, -2127))
 	VehicleDirectTP(NewCFrame(2213, 25, -2475))
 	VehicleDirectTP(NewCFrame(2279, 25, -2551))
-    SetStatus("Casino", "Selling..")
+    SetStatus("Casino", "Selling..", "(fuck you fay)")
 	VehicleDirectTP(NewCFrame(2291, 20, -2593))
 	repeat task.wait() until not RobberyMoneyGui.Enabled
-    SetStatus("Casino", "Robbery Complete!")
+    SetStatus("Casino", "Robbery Complete!", "(fuck you fay)")
 
 	VehicleDirectTP(NewCFrame(2279, 25, -2551))
 	VehicleDirectTP(NewCFrame(2213, 25, -2475))
@@ -3066,219 +2933,6 @@ local function RobCasino()
     BringPlatform()
 end
 
-local function RobOilRig()
-	if not Robbery.OilRig.Enabled then return end Escape("Oil Rig")
-	SetStatus("Oil Rig", "Teleporting to robbery..")
-	for i, v in pairs(Workspace.OilRig.Turrets:GetChildren()) do
-		pcall(function()
-			v:Remove()
-		end)
-	end
-
-	VehicleTP(CFrame.new(-2786, 135, -4067), true)
-
-	SetStatus("Oil Rig", "Opening robbery..")
-	SmallTP(CFrame.new(-2780, 135, -4003))
-
-	repeat
-		for i, v in pairs(Specs) do
-			if v.Name == "Place TNT" and v.Part and DistanceXZ(Root.Position, v.Part.Position) < 15 then
-				v.Part.OnPressedRemote:FireServer(false)
-				wait(1.5)
-				v.Part.OnPressedRemote:FireServer(true)
-				break
-			end
-		end
-		wait(0.5)
-	until RobberyMoneyGui.Enabled
-
-	Robbery.OilRig.Robbed = true
-	SmallTP(CFrame.new(-2797, 137, -4068))
-
-	repeat 
-		for i, v in pairs(Workspace.OilRig.GuardsFolder:GetChildren()) do
-			v.Humanoid.Health = 0
-		end
-		wait(0.2)
-	until Workspace.OilRig.GuardCounters.GuardCounter.SurfaceGui.TextLabel.Text == "00"
-
-	local EntranceDoorOil = workspace.OilRig.ElevatorLockPuzzle.SlideDoor.InnerModel.Door
-	if EntranceDoorOil.CFrame == CFrame.new(-2900.07056, 137.399994, -4065.89355, 0, 0, 1, 0, 1, 0, -1, 0, 0) then
-		ChainTP({
-			NewCFrame(-2807, 134, -4067), 
-			NewCFrame(-2868, 134, -4066), 
-			NewCFrame(-2893, 134, -4031), 
-			NewCFrame(-2905, 134, -4031), 
-			NewCFrame(-2908, 134, -4047) 
-		})
-		task.wait(.2)
-		repeat
-			for i, v in pairs(Specs) do
-				if v.Name == "Pull Lever" and v.Part and DistanceXZ(Root.Position, v.Part.Position) < 15 then
-					v.Part.Parent.OnPressedRemote:FireServer(false)
-					wait(1.5)
-					v.Part.Parent.OnPressedRemote:FireServer(true)
-					break
-				end
-			end
-			task.wait()
-		until EntranceDoorOil.CFrame ~= CFrame.new(-2900.07056, 137.399994, -4065.89355, 0, 0, 1, 0, 1, 0, -1, 0, 0)
-		ChainTP({
-			NewCFrame(-2904, 134, -4030), 
-			NewCFrame(-2891, 134, -4031), 
-			NewCFrame(-2888, 134, -4065), 
-			NewCFrame(-2904, 134, -4065) 
-		})
-	else
-		ChainTP({
-			NewCFrame(-2807, 134, -4067), 
-			NewCFrame(-2904, 134, -4065) 
-		})
-	end
-
-	SetStatus("Oil Rig",  "Starting robbery..")
-
-	for i, v in pairs(workspace.OilRig.GuardsFolder:GetChildren()) do
-		v.Humanoid.Health = 0
-	end
-	local Loopedkill = workspace.OilRig.GuardsFolder.ChildAdded:Connect(function(v)
-		pcall(function()
-			wait(2)
-			v.Humanoid.Health = 0
-		end)
-	end)
-	delay(40, function()
-		Loopedkill:Disconnect()
-	end)
-
-	ChainTP({
-		NewCFrame(-2905, 154, -4101), 
-		NewCFrame(-2906, 172, -4090), 
-		NewCFrame(-2906, 171, -4081), 
-		NewCFrame(-2898, 164, -4081), 
-		NewCFrame(-2887, 164, -4081) 
-	})
-	
-	local CrackDoor = Workspace.OilRig.CommandRoomDoor.InnerModel.DoorVisual
-
-	if CrackDoor.CFrame == CFrame.new(-2886.07104, 166.855942, -4082.29297, 0, 0, 1, 0, 1, -0, -1, 0, 0) then
-		repeat 
-			for i, v in pairs(Specs) do
-				if v.Name == "Crack Door" and DistanceXZ(Root.Position, v.Part.Position) < 15 then
-					v:Callback(true)
-				end
-			end
-			task.wait(1)
-		until Puzzle.IsOpen
-
-		while not pcall(SolveNumberLink) do 
-			wait(1)
-		end
-	end
-
-	ChainTP({
-		NewCFrame(-2864, 165, -4083), 
-		NewCFrame(-2863, 165, -4043),
-	})
-
-	SetStatus("Oil Rig", "Collecting oil..")
-
-	wait(20)
-
-	ChainTP({
-		NewCFrame(-2864, 165, -4083), 
-		NewCFrame(-2893, 165, -4084) 
-	})
-
-	if not Player.Folder:FindFirstChild("Key") then
-		SetStatus("Oil Rig", "Collecting key..")
-		SmallTP(NewCFrame(-2900, 165, -4049))
-		repeat 
-			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(false)
-			wait(1.5)
-			Workspace.OilRig.KeyCardTable.KeyCardGiver.OnPressedRemote:FireServer(true)
-		until Player.Folder:FindFirstChild("Key")
-		SmallTP(NewCFrame(-2893, 165, -4084))
-	end
-
-	SetStatus("Oil Rig",  "Starting robbery..")
-	ChainTP({
-		NewCFrame(-2909, 168, -4082), 
-		NewCFrame(-2914, 164, -4105), 
-		NewCFrame(-2913, 152, -4111), 
-		NewCFrame(-2913, 152, -4130) 
-	})
-
-	SetStatus("Oil Rig", "Collecting oil..")
-	wait(20)
-
-	SetStatus("Oil Rig", "Exiting robbery..")
-	ChainTP({
-		NewCFrame(-2914, 152, -4110), 
-		NewCFrame(-2904, 152, -4110), 
-		NewCFrame(-2905, 138, -4066),
-		NewCFrame(-2844, 135, -4067),
-		NewCFrame(-2786, 135, -4067)
-	})
-
-	EnterVehicle()
-	SetStatus("Oil Rig", "Teleporting to port..")
-	wait(1)
-	VehicleTP(CFrame.new(-509, 28, 2119))
-
-	SetStatus("Oil Rig", "Selling..")
-	repeat task.wait() until not RobberyMoneyGui.Enabled
-	SetStatus("Oil Rig", "Robbery Complete!")
-    task.wait(0.45)
-    OnRobbery("Oil Rig")
-    BringPlatform()
-end
-
-local function RobDonutStore()
-    if not Robbery.Donut.Enabled then return end Escape("Donut Store")
-    SetStatus("Donut Store", "Teleporting to robbery..")
-    VehicleTP(CFrame.new(84, 34, -1605))
-    task.wait(0.5)
-
-    SetStatus("Donut Store", "Starting robbery..")
-    for _, spec in pairs(Specs) do
-        if spec.Name == "Rob" and DistanceXZ(Root.Position, spec.Part.Position) < 100 then
-            Robbery.Donut.Robbed = true
-            spec:Callback(false)
-            task.wait(10)
-            spec:Callback(true)
-        end
-    end
-
-    SetStatus("Donut Store", "Robbery Complete!")
-    task.wait(0.45)
-    OnRobbery("Donut Store")
-    BringPlatform()
-end
-
-local function RobGasStation()
-    if not Settings.Enabled then return end
-    if not Robbery.Gas.Enabled then return end Escape("Gas Station")
-    SetStatus("Gas Station", "Teleporting to robbery..")
-    VehicleTP(CFrame.new(-1594, 34, 710))
-    task.wait(0.5)
-
-    SetStatus("Gas Station", "Starting robbery..")
-    for _, spec in pairs(Specs) do
-        if spec.Name == "Rob" and DistanceXZ(Root.Position, spec.Part.Position) < 100 then
-            Robbery.Gas.Robbed = true
-            spec:Callback(false)
-            task.wait(10)
-            spec:Callback(true)
-        end
-    end
-
-    SetStatus("Gas Station", "Robbery Complete!")
-	
-    task.wait(0.45)
-    OnRobbery("Gas Station")
-    BringPlatform()
-end
 
 local function RobAirdrop()
     if not Robbery.Airdrop.Enabled then return end Escape("Airdrop")
@@ -3460,7 +3114,7 @@ Robbery.CargoTrain.Callback     = RobCargoTrain
 Robbery.PassengerTrain.Callback = RobPassengerTrain
 Robbery.CargoPlane.Callback     = RobCargoPlane
 Robbery.CargoShip.Callback      = RobCargoShip
--- Robbery.Tomb.Callback           = function() end
+Robbery.Tomb.Callback           = function() end
 Robbery.Casino.Callback         = RobCasino
 Robbery.Mansion.Callback        = RobMansion
 Robbery.OilRig.Callback         = RobOilRig
@@ -3606,6 +3260,7 @@ function SwitchServer(SmallServer)
 	SwitchingServer = true
 
 
+		
 	while true do
 		pcall(function()
 			local AvailableServers = {}
@@ -3671,41 +3326,6 @@ function ToggleAutorob(bool)
 	end)
 	
 
-	while Settings.Enabled do
-
-		if CheckAvailable() then
-			-- if BagVisible() then
-			-- 	local MoneyGuiMessage = PlayerGui.RobberyMoneyGui.Container.Message.Text:lower()
-			-- 	local BagType = (MoneyGuiMessage:match("criminal base") and "Jewelry") or (MoneyGuiMessage:match("cargo port") and "CargoPlane") or nil
-
-			-- 	Pcall(function()
-			-- 		AttemptSell(BagType)
-			-- 	end, "SellExistingBag")
-
-			-- 	Cooldown()
-			-- end
-
-			local Winner, WinnerName = GetRobberyPriority()
-
-			if not Winner then
-				wait()
-				continue
-			end
-
-			Pcall(Winner.Callback, WinnerName)
-			Cooldown()
-
-			-- if BagVisible() then
-			-- 	local MoneyGuiMessage = PlayerGui.RobberyMoneyGui.Container.Message.Text:lower()
-			-- 	local BagType = (MoneyGuiMessage:match("criminal base") and "Jewelry") or (MoneyGuiMessage:match("cargo port") and "CargoPlane") or nil
-
-			-- 	Pcall(function()
-			-- 		AttemptSell(BagType)
-			-- 	end, "SellExistingBag")
-
-			--    Cooldown()
-			-- end
-		else
 			if Settings.ServerHop then
 				SetStatus("New game", "Server Hopping..")
 				SwitchServer()
@@ -3734,12 +3354,7 @@ function ToggleAutorob(bool)
 end
 
 
-ForEvery(5, function(stop)
-	-- save settings
-	Pcall(function()
-		SaveFile("AutoRobSettings.json",  HttpService:JSONEncode(Settings))
-	end, "SaveSettings")
-end)
+
 
 -------------------->>  Prestart Autorob  <<--------------------
 
@@ -5837,7 +5452,7 @@ local SettingsTab = MainWindow:CreateTab("Settings")
 local MiscTab = MainWindow:CreateTab("Miscellaneous")
 
 local MainTab = HomeTab:CreateSection("Autorob")
-
+local StatusTab = HomeTab:CreateSection("Statuses", "Right")
 local CreditsSec = HomeTab:CreateSection("Credits")
 local AboutSec = HomeTab:CreateSection("About", "Right")
 
@@ -5848,13 +5463,15 @@ end, { Enabled = Settings.Enabled })
 local StoreLbl = MainTab:CreateTextlabel("Store: None")
 local StatusLbl = MainTab:CreateTextlabel("Status: Autorob disabled.")
 
-CreditsSec:CreateTextlabel("@hydradedgaming: Fixing")
-CreditsSec:CreateTextlabel("@fuck you fayy: Scripting")
+CreditsSec:CreateTextlabel("@babyfayy333: Scripting")
 CreditsSec:CreateTextlabel("@itztempy0: Scripting")
 CreditsSec:CreateTextlabel("@harmonicdust: UI Library")
 
 AboutSec:CreateKeybind("Toggle Gui", MainWindow.Toggle, { Bind = Enum.KeyCode.RightShift })
-
+AboutSec:CreateTextlabel("Total Executions: " .. FormatCash(LRM_TotalExecutions))
+AboutSec:CreateButton("Copy Script Key", function()
+    setclipboard(script_key)
+end)
 
 function SetStats(money, time)
     local function Set()
@@ -6035,7 +5652,3 @@ end, { Enabled = Settings.ChatOpenings })
 -------------------->>  Wrapping up  <<--------------------
 
 Notif("Farmhub Injected in " .. string.format("%.2f", (tick() - TimeStarted)) .. "s", 7)
-
-if FH_DEBUG then
-	print("[FarmHub (DEBUG)]: Farmhub Injected successfully")
-end
