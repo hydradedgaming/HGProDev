@@ -1,0 +1,2285 @@
+-------------------->> Farmhub Script Macros <<--------------------
+
+if not LPH_OBFUSCATED then
+	FH_DEBUG = true
+	FH_DEVELOPER = true
+end
+
+-------------------->> Luraph & Luarmor Macros <<--------------------
+
+if not LPH_OBFUSCATED then
+	script_key                  = "mCmIgbiDYBXSQGtBwuMqIdvjOofcXUbW"
+	LRM_UserNote                = "Not specified"
+	LRM_ScriptName              = "Auto Rob"
+	LRM_SecondsLeft             = math.huge
+	LRM_IsUserPremium           = true
+	LRM_LinkedDiscordID         = "855840079376285727"
+	LRM_TotalExecutions         = 0
+
+	LPH_JIT                     = function(...) return ... end
+	LPH_CRASH                   = function() return print(debug.traceback()) end
+	LPH_ENCSTR                  = function(...) return ... end
+	LPH_JIT_MAX                 = function(...) return ... end
+	LPH_HOOK_FIX                = function(...) return ... end
+	LPH_JIT_ULTRA               = function(...) return ... end
+	LPH_NO_UPVALUES             = function(f) return(function(...) return f(...) end) end
+	LPH_NO_VIRTUALIZE           = function(...) return ... end
+end
+
+-------------------->> Load Game <<--------------------
+
+if not game:IsLoaded() then 
+	if FH_DEBUG then
+		print("[FarmHub (DEBUG)]: Waiting for game to load..")
+	end
+
+	game.Loaded:Wait() 
+	wait(3) 
+end
+
+-------------------->> Execution Check <<--------------------
+
+local TimeStarted = tick()
+if getgenv().Farmhub then
+	--return warn("// Already Executed!")
+else
+	if FH_DEBUG then
+		print("[FarmHub (DEBUG)]: Marked Farmhub as injected.")
+	end
+	getgenv().Farmhub = true
+end
+
+if game.PlaceId ~= 606849621 then
+	if FH_DEBUG then
+		print("[FarmHub (DEBUG)]: Incorrect PlaceID, returning.")
+	end
+	return
+end
+
+-------------------->> Directory Functions <<--------------------
+
+local function GetDirectory()
+	local Directory = "Glitch"
+	if not isfolder(Directory) then
+		makefolder(Directory)
+	end
+	return Directory
+end
+
+local function SaveFile(name, data)
+	local success, error = pcall(function()
+		writefile(GetDirectory() .. "\\" .. name, data)
+	end)
+	return success
+end
+
+local function LoadFile(name)
+	local success, data = pcall(function()
+		return readfile(GetDirectory() .. "\\" .. name)
+	end)
+	return success and data or nil
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Setup directory system & functions.")
+end
+
+-------------------->> Statueses <<--------------------
+
+function SetStatus(store, stat)
+	print("[" .. store .. "]: " .. stat)
+end
+
+function SetStats(time, money)
+	print(time, money)
+end
+
+-------------------->> Client Services <<--------------------
+
+local Services = setmetatable({}, {
+	__index = function(self, service)
+		return game:GetService(service)
+	end
+})
+
+local Teams                     = Services.Teams
+local Players                   = Services.Players
+local CoreGui                   = Services.CoreGui
+local Lighting                  = Services.Lighting
+local Workspace                 = Services.Workspace
+local StarterGui                = Services.StarterGui
+local RunService                = Services.RunService
+local GuiService                = Services.GuiService
+local TextService               = Services.TextService
+local HttpService               = Services.HttpService
+local VirtualUser               = Services.VirtualUser
+local TweenService              = Services.TweenService
+local TeleportService           = Services.TeleportService
+local TextChatService           = Services.TextChatService
+local UserInputService          = Services.UserInputService
+local CollectionService         = Services.CollectionService
+local ReplicatedStorage         = Services.ReplicatedStorage
+local PathfindingService        = Services.PathfindingService
+local MarketplaceService        = Services.MarketplaceService
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Got local game services.")
+end
+
+-------------------->> Settings Importation <<--------------------
+
+local Settings = {
+	Enabled                     = false,
+	KillAura                    = false,
+	NotifyOpenings              = true,
+	ChatOpenings                = false,
+	AntiRagdoll                 = true,
+	AntiSkydive                 = true,
+	LoopTirePop                 = false,
+	AutoLockVehicle             = false,
+	AutoKickPlayers             = false,
+	CopRange                    = 110,
+	Cooldown                    = 0,
+	AwaitReward                 = true,
+	HyperFocus                  = false,             
+	PlayerSpeed                 = 60,
+	SkySpeed                    = 95,
+	VehicleSpeed                = 225,
+	LogHook                     = false,
+	WebhookURL                  = "",
+	AlertEarnings               = false,
+	AlertHyper                  = false
+}
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded default settings.")
+end
+
+local SettingsFile = LoadFile("AutoRobSettings.json")
+
+if SettingsFile then
+	local Success, Data = pcall(function()
+		return game:GetService("HttpService"):JSONDecode(SettingsFile)
+	end)
+
+	if Success then
+		for i, v in pairs(Data) do
+			Settings[i] = v
+		end
+	end
+	if FH_DEBUG then
+		print("[FarmHub (DEBUG)]: Imported new settings from - workspace/Farmhub/AutoRobSettings.json")
+	end
+end
+
+-------------------->> Client Player <<--------------------
+
+local Player                    = Players.LocalPlayer
+local PlayerGui                 = Player:WaitForChild("PlayerGui")
+local Backpack                  = Player:WaitForChild("Folder")
+local Leaderstats               = Player:WaitForChild("leaderstats")
+local RobberyMoneyGui           = PlayerGui:WaitForChild("RobberyMoneyGui")
+local Character                 = nil
+local Humanoid                  = nil
+local Root                      = nil
+local Camera                    = Workspace.CurrentCamera
+local BreakFunc                 = function() end
+local ExitFunc                  = function() end
+local BreakTime                 = 0 
+local GetSpawnTime              = nil
+local KillAuraPaused            = false
+local NoBlockDoors              = {}
+local RobberyState              = ReplicatedStorage.RobberyState
+local BagLabel                  = RobberyMoneyGui.Container.Bottom.Progress.Amount
+local SetIdentity               = setidentity or set_thread_identity or (syn and syn.set_thread_identity) or setcontext or setthreadcontext or set_thread_context
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Setup local player & variables.")
+end
+
+-------------------->> Anticheat Functions <<--------------------
+
+local CheatCheck = nil
+LPH_NO_VIRTUALIZE(function()
+	for i, v in pairs(getgc(true)) do
+		if typeof(v) == "function" then
+			CheatCheck = v
+			if debug.info(v, "n"):match("CheatCheck") and hookfunction then
+				hookfunction(v, function() return "hook" end)
+			end
+			if getfenv(v).script == Player.PlayerScripts.LocalScript and getconstants then
+				local con = getconstants(v)
+
+				if table.find(con, "LastVehicleExit") and table.find(con, "tick") then
+					ExitFunc = getupvalue(v, 2)
+				end
+			end
+		elseif type(v) == "table" and type(rawget(v, "getRemainingDebounce")) == "function" then 
+			GetSpawnTime = v.getRemainingDebounce
+		end
+	end
+end)()
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Scanned GC successfully.")
+	print("[FarmHub (DEBUG)]: CheatCheck: " .. tostring(CheatCheck))
+	print("[FarmHub (DEBUG)]: ExitVehicle: " .. tostring(ExitFunc))
+	print("[FarmHub (DEBUG)]: GetSpawnTime: " .. tostring(GetSpawnTime))
+end
+
+-------------------->> Client Statisitcs <<--------------------
+
+getgenv().StartingMoney         = getgenv().StartingMoney or Leaderstats:WaitForChild("Money").Value
+getgenv().StartingTime          = getgenv().StartingTime or tick()
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: (Pre)Loaded client stats.")
+end
+
+-------------------->> Formatting Stuff <<--------------------
+
+local function FormatCash(number)
+	local totalnum = tostring(number):split("")
+
+	if #totalnum == 7 then
+		return totalnum[1].."."..totalnum[2].."M"
+	elseif #totalnum >= 10 then
+		return totalnum[1].."."..totalnum[2].."B"
+	elseif #totalnum == 4 and #totalnum[2] == 0 then
+		return totalnum[1].."k"
+	elseif #totalnum == 4  then
+		return totalnum[1].."."..totalnum[2].."k"
+	elseif #totalnum == 5  then
+		return totalnum[1]..totalnum[2].."."..totalnum[3].."k"
+	elseif #totalnum == 6  then
+		return totalnum[1]..totalnum[2]..totalnum[3].."k"
+	else
+		return number
+	end
+end
+
+local function TickToHM(seconds)
+	local minutes = math.floor(seconds / 60)
+	seconds = seconds % 60
+	local hours = math.floor(minutes / 60)
+	minutes = minutes % 60
+
+	return hours .. "h/" .. minutes .. "m"
+end
+
+function SplitCaps(robbery)
+	return (robbery:gsub("%u", " %1"))
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded formatting functions.")
+end
+
+-------------------->> Client Modules <<--------------------
+
+local Modules                   = {
+	UI                          = require(ReplicatedStorage.Module.UI),
+	NPC                         = require(ReplicatedStorage.NPC.NPC),
+	Maid                        = require(ReplicatedStorage.Std.Maid),
+	Store                       = require(ReplicatedStorage.App.store),
+	Raycast                     = require(ReplicatedStorage.Module.RayCast),
+	Vehicle                     = require(ReplicatedStorage.Vehicle.VehicleUtils),
+	GunItem                     = require(ReplicatedStorage.Game.Item.Gun),
+	GuardNPC                    = require(ReplicatedStorage.GuardNPC.GuardNPCShared),
+	TagUtils                    = require(ReplicatedStorage.Tag.TagUtils),
+	GunShopUI                   = require(ReplicatedStorage.Game.GunShop.GunShopUI),
+	CharUtils                   = require(ReplicatedStorage.Game.CharacterUtil),
+	NpcShared                   = require(ReplicatedStorage.GuardNPC.GuardNPCShared),
+	SafeConsts                  = require(ReplicatedStorage.Safes.SafesConsts),
+	CartSystem                  = require(ReplicatedStorage.Game.Cart.CartSystem),
+	TombSystem                  = require(ReplicatedStorage.Game.Robbery.TombRobbery.TombRobberySystem),
+	ItemSystem                  = require(ReplicatedStorage.Game.ItemSystem.ItemSystem),
+	BossConsts                  = require(ReplicatedStorage.MansionRobbery.BossNPCConsts),
+	PuzzleFlow                  = require(ReplicatedStorage.Game.Robbery.PuzzleFlow),
+	AlexChassis                 = require(ReplicatedStorage.Module.AlexChassis),
+	Notification                = require(ReplicatedStorage.Game.Notification),
+	MansionUtils                = require(ReplicatedStorage.MansionRobbery.MansionRobberyUtils),
+	Confirmation                = require(ReplicatedStorage.Module.Confirmation),
+	TeamChooseUI                = require(ReplicatedStorage.TeamSelect.TeamChooseUI),
+	BulletEmitter               = require(ReplicatedStorage.Game.ItemSystem.BulletEmitter),
+	DartDispenser               = require(ReplicatedStorage.Game.DartDispenser.DartDispenser),
+	CharacterAnim               = require(ReplicatedStorage.Game.CharacterAnim),
+	RobberyConsts               = require(ReplicatedStorage.Robbery.RobberyConsts),
+	ButtonService               = require(ReplicatedStorage.App.BigButtonService),
+	MilitaryTurret              = require(ReplicatedStorage.Game.MilitaryTurret.MilitaryTurret),
+	DefaultActions              = require(ReplicatedStorage.Game.DefaultActions),
+}
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded enviroment modules.")
+end
+
+-------------------->> Default Modules <<--------------------
+
+local DefaultModules            = {
+	IsPointInTag                = Modules.TagUtils.isPointInTag,
+	OldRayIgnore                = Modules.Raycast.RayIgnoreNonCollideWithIgnoreList,
+	GetSkydiveTrack             = Modules.CharacterAnim.getSkydiveTrack,
+	Notification_new            = Modules.Notification.new,
+	CanSeeTarget                = Modules.GuardNPC.canSeeTarget,
+	NPC_new                     = Modules.NPC.new,
+	NPC_GetTarget               = Modules.NPC.GetTarget,
+	NPCS_GoTo                   = Modules.NpcShared.goTo,
+	GuardNPC_GoTo               = Modules.GuardNPC.goTo,
+}
+
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Hookfunc enviroment modules success.")
+end
+
+-------------------->> Module Tables <<--------------------
+
+local Specs                     = Modules.UI.CircleAction.Specs
+local AttemptPunch              = Modules.DefaultActions.punchButton.onPressed
+local Puzzle                    = getupvalue(Modules.PuzzleFlow.Init, 3)
+local Event                     = getupvalue(Modules.AlexChassis.SetEvent, 1)
+getgenv().RemoteEvent           = getgenv().RemoteEvent or getupvalue(getupvalue(Event.FireServer, 1), 2)
+
+local function Notif(text, time)
+	require(ReplicatedStorage.Game.Notification).SetColor(Color3.fromRGB(0, 0, 0))
+	require(ReplicatedStorage.Game.Notification).new({ Text = text, Time = time })
+end 
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded module tables.")
+end
+
+-------------------->> Roblox Functions <<--------------------
+
+local wait                      = task.wait
+local spawn                     = task.spawn
+local RaycastParams             = RaycastParams.new()
+local Tasks                     = {}
+
+
+local function Chat(message)
+	TextChatService.TextChannels.RBXGeneral:SendAsync(message, "All")
+end
+
+RunService.Stepped:Connect(function(_, dt)
+	for _, task in pairs(Tasks) do
+		task.time = task.time + dt
+		if task.time >= task.second then
+			task.time = task.time - task.second
+			task.func(function()
+				table.remove(Tasks, _)
+			end)
+		end
+	end
+end)
+
+local function ForEvery(Second, Task)
+	table.insert(Tasks, {
+		time = Second,
+		second = Second,
+		func = Task
+	})
+end
+
+local function WaitUntil(Func, Timeout, Interval)
+	if Func() then
+		return
+	end
+
+	Timeout = Timeout or 9e9
+	Interval = Interval or 0.1
+
+	local WaitStart = tick()
+
+	repeat wait(Interval) until Func() or tick() - WaitStart > Timeout
+
+	return tick() - WaitStart > Timeout
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Rewrote Roblox functions.")
+end
+
+-------------------->> Math Functions <<--------------------
+
+local NewVector3                = Vector3.new
+local NewCFrame                 = CFrame.new
+local Sky                       = NewVector3(0, 500, 0)
+local Down                      = NewVector3(0, -1000, 0)
+
+local function DistanceXZ(pos1, pos2)
+	return (NewVector3(pos1.X, 0, pos1.Z) - NewVector3(pos2.X, 0, pos2.Z)).Magnitude
+end
+
+local function DistanceXYZ(pos1, pos2)
+	return (pos1 - pos2).Magnitude
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded math functions.")
+end
+
+-------------------->> Robbery Rendering <<--------------------
+
+local Vehicles
+local VehicleSpawns
+local Bank
+local Bank2
+local Jewelry
+local Museum
+local PowerPlant
+local Trains
+local RobberyTomb
+local MansionRobbery
+local Bank
+local Casino
+local OilRig
+
+task.spawn(function() Vehicles       = workspace:WaitForChild("Vehicles", 9999) end)
+task.spawn(function() VehicleSpawns  = workspace:WaitForChild("VehicleSpawns", 9999) end)
+task.spawn(function() Bank           = workspace:WaitForChild("Banks", 9999):WaitForChild("Bank", 9999) end)
+task.spawn(function() Bank2          = workspace:WaitForChild("Banks", 9999):WaitForChild("Bank2", 9999) end)
+task.spawn(function() Jewelry        = workspace:WaitForChild("Jewelrys", 9999):GetChildren()[1] end)
+task.spawn(function() Museum         = workspace:WaitForChild("Museum", 9999) end)
+task.spawn(function() PowerPlant     = workspace:WaitForChild("PowerPlant", 9999) end)
+task.spawn(function() Trains         = workspace:WaitForChild("Trains", 9999) end)
+task.spawn(function() RobberyTomb    = workspace:WaitForChild("RobberyTomb", 9999) end)
+task.spawn(function() Casino         = workspace:WaitForChild("Casino", 9999) end)
+task.spawn(function() MansionRobbery = workspace:WaitForChild("MansionRobbery", 9999) end)
+task.spawn(function() OilRig         = workspace:WaitForChild("OilRig", 9999) end)
+
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded robbery load awaiters.")
+end
+
+-------------------->> Data Tables <<--------------------
+
+local OnOpen = Instance.new("BindableEvent")
+
+local WorkspacePartIgnore = {
+	"Rain",
+	"RainFall",
+	"RainSnow",
+	"Plane",
+	"Items",
+	"DirtRoad",
+	"Vehicles",
+	"VehicleSpawns",
+	"Trains"
+}
+
+local CargoTrainBoxCars = {
+	"BoxCar",
+	"BoxCar2",
+	"BoxCar3",
+	"BoxCar4",
+	"BoxCar5"
+}
+
+local PlaneCrates = {
+	"Crate1",
+	"Crate2",
+	"Crate3",
+	"Crate4",
+	"Crate5",
+}
+
+local Robbery = setmetatable({
+	Bank = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.BANK,
+		Value     = 3,
+		Open      = false,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(-8, 18, 865) end,
+		GetModel  = function() return Bank end
+	},
+	CraterBank = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.BANK2,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(0, 0, 0) end,
+		GetModel  = function() return Bank end
+	},
+	Jewelry = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.JEWELRY,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(63, 18, 1316) end,
+		GetModel  = function() return Jewelry end
+	},
+	Museum = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.MUSEUM,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(1066, 101, 1254) end,
+		GetModel  = function() return Museum end
+	},
+	PowerPlant = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.POWER_PLANT,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(68, 21, 2339) end,
+		GetModel  = function() return PowerPlant end
+	},
+	PassengerTrain = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.TRAIN_PASSENGER,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return Root and Root.Position + NewVector3(0, 2, 0) end
+	},
+	CargoTrain = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.TRAIN_CARGO,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() for i,v in pairs(CargoTrainBoxCars) do if Trains:FindFirstChild(v) then return Trains:FindFirstChild(v).Model.Rob.Gold.Position end end end
+	},
+	CargoShip = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.CARGO_SHIP,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return Root and Root.Position + NewVector3(0, 1, 0) end,
+		Callback  = function() end
+	},
+	CargoPlane = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.CARGO_PLANE,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return workspace:FindFirstChild("Plane") and workspace.Plane.PrimaryPart.Position end
+	},
+	Donut = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.STORE_DONUT,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(80, 33, -1596) end
+	},
+	Gas = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.STORE_GAS,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = false,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(-1603, 18, 662) end
+	},
+	Tomb = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.TOMB,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(479, 20, -482) end,
+		GetModel  = function() return RobberyTomb end
+	},
+	Casino = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.CASINO,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(46, 155, -4740) end,
+		GetModel  = function() return Casino end
+	},
+	Mansion = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.MANSION,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(3032, 57, -4544) end,
+		GetModel  = function() return MansionRobbery end
+	},
+	OilRig = {
+		ID        = Modules.RobberyConsts.ENUM_ROBBERY.OIL_RIG,
+		Open      = false,
+		Value     = 3,
+		InstantTpSupported = true,
+		Enabled   = true,
+		GetPos    = function() return NewVector3(0, 0, 0) end,
+		GetModel  = function() return OilRig end
+	},
+	Airdrop = {
+		Enabled = true,
+		InstantTpSupported = false,
+	}
+}, {
+	__index = {
+		OnOpen = {
+			Fire = function(self, ...)
+				OnOpen:Fire(...)
+			end,
+			Connect = function(self, ...)
+				OnOpen.Event:Connect(...)
+			end
+		}
+	}
+});
+
+local BankPaths = {
+	["01UpperManagement"] = {
+		[1] = NewCFrame(83, 30, 918),
+		[2] = NewCFrame(70, 65, 835),
+		[3] = NewCFrame(30, 65, 841),
+		[4] = NewCFrame(33, 65, 863),
+		[5] = NewCFrame(53, 65, 860),
+		[6] = NewCFrame(60, 65, 891),
+		[7] = NewCFrame(38, 65, 895),
+		[8] = NewCFrame(43, 65, 921),
+		[9] = NewCFrame(68, 65, 922),
+		[10] = NewCFrame(82, 60, 920)
+	}, 
+	["02Basement"] = {
+		[1] = NewCFrame(-601, 10, -6009),
+		[2] = NewCFrame(-583, 0, -5964), 
+		[3] = NewCFrame(-606, -4, -5956),
+		[4] = NewCFrame(-624, -7, -5991),
+		[5] = NewCFrame(-638, -7, -5984),
+		[6] = NewCFrame(-633, -7, -5967),
+		[7] = NewCFrame(-676, -7, -5948)
+	},
+	["03Corridor"] = {
+		[1] = NewCFrame(59, 20, 922),
+		[2] = NewCFrame(59, -8, 922),
+		[3] = NewCFrame(58, -8, 919),
+		[4] = NewCFrame(109, -8, 910),
+		[5] = NewCFrame(129, -8, 907),
+		[6] = NewCFrame(179, -8, 902),
+		[7] = NewCFrame(191, -8, 900)
+	}, 
+	["04Remastered"] = {
+		[1] = NewCFrame(61, 22, 922),
+		[2] = NewCFrame(105, 1, 914),
+		[3] = NewCFrame(97, 1, 875),
+		[4] = NewCFrame(33, 3, 887),
+		[5] = NewCFrame(21, 2, 889)
+	}, 
+	["05Underwater"] = {
+		[1] = NewCFrame(64, 18, 922),
+		[2] = NewCFrame(103, 1, 915),
+		[3] = NewCFrame(102, 1, 905),
+		[4] = NewCFrame(97, -13, 880),
+		[5] = NewCFrame(93, -12, 857),
+		[6] = NewCFrame(136, -8, 849),
+		[7] = NewCFrame(158, -8, 844)
+	}, 
+	["06TheBlueRoom"] = {
+		[1] = NewCFrame(-629, 21, -5997), 
+		[2] = NewCFrame(-629, 1, -5997),
+		[3] = NewCFrame(-729, 1, -5955) 
+	},
+	["07TheMint"] = {
+		[1] = NewCFrame(60, 19, 923),
+		[2] = NewCFrame(101, 1, 915),
+		[3] = NewCFrame(89, 1, 847),
+		[4] = NewCFrame(77, 0, 847),
+		[5] = NewCFrame(70, 0, 815),
+		[6] = NewCFrame(52, 0, 816),
+		[7] = NewCFrame(48, 0, 798)
+	},
+	["08Deductions"] = {
+		[1] = NewCFrame(-626, 19, -5999), 
+		[2] = NewCFrame(-586, 2, -6016), 
+		[3] = NewCFrame(-564, 2, -5962), 
+		[4] = NewCFrame(-588, 2, -5952), 
+		[5] = NewCFrame(-595, 2, -5969),
+		[6] = NewCFrame(-636, 2, -5953)
+	},
+	["09Presidential"] = {
+		[1] = NewCFrame(-628, 20, -5997),
+		[2] = NewCFrame(-628, -6, -5997), 
+		[3] = NewCFrame(-603, -6, -6008), 
+		[4] = NewCFrame(-573, -6, -5939), 
+		[5] = NewCFrame(-612, -6, -5921), 
+		[6] = NewCFrame(-630, -6, -5964) 
+	}
+}
+local JewelryPaths = {
+	["1_Classic"] = {
+		[1] = NewCFrame(105, 55, 1281), 
+		[2] = NewCFrame(105, 70, 1281),
+		[3] = NewCFrame(125, 70, 1337), 
+		[4] = NewCFrame(163, 63, 1332), 
+		[5] = NewCFrame(153, 80, 1273),
+		[6] = NewCFrame(124, 80, 1277), 
+		[7] = NewCFrame(133, 80, 1336), 
+		[8] = NewCFrame(162, 85, 1331), 
+		[9] = NewCFrame(152, 102, 1273)
+	},
+	["2_StorageAndMeeting"] = {
+		[1] = NewCFrame(137, 55, 1284), 
+		[2] = NewCFrame(140, 55, 1301),
+		[3] = NewCFrame(111, 55, 1310), 
+		[4] = NewCFrame(118, 55, 1332),
+		[5] = NewCFrame(163, 63, 1333), 
+		[6] = NewCFrame(153, 80, 1274), 
+		[7] = NewCFrame(126, 80, 1294), 
+		[8] = NewCFrame(101, 85, 1340), 
+		[9] = NewCFrame(162, 85, 1331), 
+		[10] = NewCFrame(153, 103, 1273)
+	}, 
+	["3_ExpandedStore"] = {
+		[1] = NewCFrame(96, 60, 1285),
+		[2] = NewCFrame(136, 60, 1337), 
+		[3] = NewCFrame(162, 63, 1332), 
+		[4] = NewCFrame(153, 80, 1274), 
+		[5] = NewCFrame(140, 95, 1276), 
+		[6] = NewCFrame(132, 95, 1339),
+		[7] = NewCFrame(163, 88, 1332), 
+		[8] = NewCFrame(153, 103, 1274)
+	}, 
+	["4_CameraFloors"] = {
+		[1] = NewCFrame(106, 55, 1282), 
+		[2] = NewCFrame(106, 71, 1282), 
+		[3] = NewCFrame(120, 71, 1340), 
+		[4] = NewCFrame(163, 62, 1332), 
+		[5] = NewCFrame(153, 80, 1273), 
+		[6] = NewCFrame(134, 80, 1277), 
+		[7] = NewCFrame(136, 80, 1337),
+		[8] = NewCFrame(163, 85, 1333), 
+		[9] = NewCFrame(153, 103, 1273)
+	}, 
+	["5_TheCEO"] = {
+		[1] = NewCFrame(105, 55, 1281), 
+		[2] = NewCFrame(105, 65, 1281), 
+		[3] = NewCFrame(126, 65, 1282), 
+		[4] = NewCFrame(135, 65, 1338), 
+		[5] = NewCFrame(162, 63, 1333), 
+		[6] = NewCFrame(153, 78, 1274), 
+		[7] = NewCFrame(127, 78, 1292),
+		[8] = NewCFrame(100, 78, 1295), 
+		[9] = NewCFrame(132, 78, 1338), 
+		[10] = NewCFrame(162, 88, 1333), 
+		[11] = NewCFrame(153, 103, 1274)
+	}, 
+	["6_LaserRooms"] = {
+		[1] = NewCFrame(117, 55, 1278), 
+		[2] = NewCFrame(135, 55, 1303), 
+		[3] = NewCFrame(129, 55, 1339), 
+		[4] = NewCFrame(163, 62, 1332), 
+		[5] = NewCFrame(152, 79, 1274), 
+		[6] = NewCFrame(124, 79, 1278), 
+		[7] = NewCFrame(134, 79, 1337), 
+		[8] = NewCFrame(162, 86, 1332), 
+		[9] = NewCFrame(152, 103, 1273)
+	}
+}
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded & formatted data tables.")
+end
+
+-------------------->> Robbery Status <<--------------------
+
+for i,v in pairs(RobberyState:GetChildren()) do
+	for i2,v2 in pairs(Robbery) do
+		if v.Name == tostring(v2.ID) then
+			v2.Value = v.Value
+			if i2 == "Museum" or i2 == "Tomb" then
+				v2.Open = (v.Value == 2)
+			elseif i2 == "Mansion" then
+				v2.Open = (v.Value == 1)
+			else
+				v2.Open = (v.Value ~= 3)
+			end
+
+			Robbery.OnOpen:Fire(i2, v2.Open)
+
+			v:GetPropertyChangedSignal("Value"):Connect(function()
+				v2.Value = v.Value
+				if i2 == "Museum" or i2 == "Tomb" then
+					v2.Open = (v.Value == 2)
+				elseif i2 == "Mansion" then
+					v2.Open = (v.Value == 1)
+				else
+					v2.Open = (v.Value ~= 3)
+				end
+
+				Robbery.OnOpen:Fire(i2, v2.Open)
+
+				if Settings.NotifyOpenings and v.Value == 1 then
+					if getgenv()._notify then
+						getgenv()._notify("Robbery Alert", "The " .. (SplitCaps(i2) or i2) .. " is now open for robbery!", 8)
+					end
+				end
+				if Settings.ChatOpenings and v.Value == 1 then
+					Chat("The " .. (SplitCaps(i2) or i2) .. " is now open for robbery!")
+				end
+			end)
+			break
+		end
+	end
+end
+
+RobberyState.ChildAdded:Connect(function(v)
+	for i2,v2 in pairs(Robbery) do
+		if v.Name == tostring(v2.ID) then
+			v2.Value = v.Value
+			if i2 == "Museum" or i2 == "Tomb" then
+				v2.Open = (v.Value == 2)
+			elseif i2 == "Mansion" then
+				v2.Open = (v.Value == 1)
+			else
+				v2.Open = (v.Value ~= 3)
+			end
+
+			v:GetPropertyChangedSignal("Value"):Connect(function()
+				v2.Value = v.Value
+				if i2 == "Museum" or i2 == "Tomb" then
+					v2.Open = (v.Value == 2)
+				elseif i2 == "Mansion" then
+					v2.Open = (v.Value == 1)
+				else
+					v2.Open = (v.Value ~= 3)
+				end
+
+				if Settings.NotifyOpenings and v.Value == 1 then
+					if getgenv()._notify then
+						getgenv()._notify("Robbery Alert", "The " .. (SplitCaps(i2) or i2) .. " is now open for robbery!", 8)
+					end
+				end
+				if Settings.ChatOpenings and v.Value == 1 then
+					Chat("The " .. (SplitCaps(i2) or i2) .. " is now open for robbery!")
+				end
+			end)
+			break
+		end
+	end
+end)
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Hooked RState to " .. tostring(Robbery))
+end
+
+-------------------->> Raycast Functions <<--------------------
+
+RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local function Raycast(origin, direction)
+	return Workspace:Raycast(origin, direction, RaycastParams)
+end
+
+local function Ignore(obj)
+	local IgnoreList = RaycastParams.FilterDescendantsInstances
+	table.insert(IgnoreList, obj)
+	RaycastParams.FilterDescendantsInstances = IgnoreList
+end
+
+local function WorkspaceOnChildAdded(child)
+	if table.find(WorkspacePartIgnore, child.Name) then
+		Ignore(child)
+	end
+end
+
+local function OnDoorAdded(door)
+	Ignore(door)
+
+	if not door:FindFirstChild("Model") then
+		return
+	end
+
+	for _, part in pairs(door.Model:GetChildren()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end
+
+	local Touch = door:FindFirstChild("Touch")
+	if not Touch or not Touch:IsA("BasePart") then
+		return
+	end
+
+	for _, part in pairs(door:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+		pcall(function()
+			part.Transparency = 1
+		end)
+	end
+
+	local Front = false
+	local Behind = false
+
+	for dir = 0, 50, 10 do
+		if Front and Behind then
+			break
+		end
+
+		local FrontPos  = Touch.Position + (Touch.CFrame.LookVector * dir)
+		local BehindPos = Touch.Position + (Touch.CFrame.LookVector * -dir)
+
+		if not Front and not Raycast(Touch.Position, FrontPos - Touch.Position) and not Raycast(FrontPos, Vector3.new(0, 1000, 0)) then
+			table.insert(NoBlockDoors, FrontPos)
+			Front = true
+		end
+		if not Behind and not Raycast(Touch.Position, BehindPos - Touch.Position) and not Raycast(BehindPos, Vector3.new(0, 1000, 0)) then
+			table.insert(NoBlockDoors, BehindPos)
+			Behind = true
+		end
+	end
+end
+
+for _, child in pairs(workspace:GetChildren()) do
+	WorkspaceOnChildAdded(child)
+end
+for _, tree in pairs(CollectionService:GetTagged("Tree")) do
+	Ignore(tree)
+end
+for _, part in pairs(CollectionService:GetTagged("NoClipAllowed")) do
+	Ignore(part)
+end
+for _, door in pairs(CollectionService:GetTagged("Door")) do
+	OnDoorAdded(door)
+end
+
+Workspace.ChildAdded:Connect(WorkspaceOnChildAdded)
+CollectionService:GetInstanceAddedSignal("Tree"):Connect(Ignore)
+CollectionService:GetInstanceAddedSignal("NoClipAllowed"):Connect(Ignore)
+CollectionService:GetInstanceAddedSignal("Door"):Connect(OnDoorAdded)
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded raycast checks / ignores")
+end
+
+-------------------->> Player Functions <<--------------------
+
+local function SetupCharacter(character)
+	Character = character
+	Humanoid = character:WaitForChild("Humanoid")
+	Root = character:WaitForChild("HumanoidRootPart")
+	Ignore(Character)
+	Humanoid.Died:Connect(function()
+		Character, Root, Humanoid = nil, nil, nil
+	end)
+end
+
+local function IsArrested()
+	if PlayerGui.MainGui.CellTime.Visible or Backpack:FindFirstChild("Cuffed") then
+		return true
+	end
+
+	return false
+end
+
+if Player.Character then
+	SetupCharacter(Player.Character)
+end
+
+Player.CharacterAdded:Connect(SetupCharacter)
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded client character parts")
+end
+
+-------------------->> Hooking Functions <<--------------------
+
+Modules.MilitaryTurret._fire  = function() end
+Modules.DartDispenser._fire   = function() end
+
+Modules.TagUtils.isPointInTag = newcclosure(function(point, tag)
+	if tag == "NoFallDamage" then
+		return true
+	end
+	if tag == "NoRagdoll" and Settings.AntiRagdoll then
+		return true
+	end
+	return DefaultModules.IsPointInTag(point, tag)
+end)
+
+Modules.CharacterAnim.getSkydiveTrack = newcclosure(function()
+	if Settings.AntiSkydive then
+		return task.wait(9e9)
+	end 
+	return DefaultModules.GetSkydiveTrack()
+end)
+
+Modules.Notification.new = function(NotificationData)
+	if NotificationData.Text == "You cannot lock your car here." or NotificationData.Text == "Tasers not allowed here." or NotificationData.Text == "Vault must be armed to crack it!" then
+		return
+	end
+	return DefaultModules.Notification_new(NotificationData)
+end
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Module hooked validation passed #2")
+end
+
+-------------------->> Vehicle Functions <<--------------------
+
+local GetVehiclePacket = Modules.Vehicle.GetLocalVehiclePacket
+local GetVehicleModel = Modules.Vehicle.GetLocalVehicleModel
+local GetLockable = Modules.Vehicle.canLocalLock
+local ToggleLock = Modules.Vehicle.toggleLocalLocked
+local GetEjectable = Modules.Vehicle.canLocalEject
+local EjectPlayer = Modules.Vehicle.attemptPassengerEject
+local VehicleLocked = (function() return GetVehicleModel():GetAttribute("Locked") end)
+local EjectPlayer = Modules.Vehicle.attemptPassengerEject
+local GetSeats = (function() local SeatedPlayers = {} if GetVehicleModel() then for i,v in next, Modules.Vehicle.getSeats(GetVehicleModel()) do if v.Player ~= Player then table.insert(SeatedPlayers, v) end end return SeatedPlayers else return nil end end)
+local FakeSniper = {__ClassName = "Sniper", Local = true, Config = {}, IgnoreList = {}, LastImpact = 0, LastImpactSound = 0, Maid = Modules.Maid.new()}
+local OwnedVehicles = {"Camaro", "Jeep"}
+
+local function ClosestVehicle() 
+	for i,v in pairs(Specs) do
+		if v.Tag.Name == "Seat" and table.find(OwnedVehicles, v.ValidRoot.Name) and (v.Part.Position - Root.Position).Magnitude <= 60 then
+			return true
+		end
+	end
+end
+
+local function EnterVehicle(vehicle)
+	vehicle = vehicle or nil
+	if vehicle then
+		for i,v in pairs(Specs) do
+			if v.Name == "Hijack" and v.Part and v.Part == vehicle:FindFirstChild("Seat") then
+				v:Callback(true)
+			end
+		end
+		for i,v in pairs(Specs) do
+			if v.Part and v.Part == vehicle:FindFirstChild("Seat") then
+				v:Callback(true)
+			end
+		end
+	else
+		for i,v in pairs(Specs) do
+			if v.Name == "Hijack" then
+				v:Callback(true)
+			end
+		end
+		for i,v in pairs(Specs) do
+			if v.Tag.Name == "Seat" and table.find(OwnedVehicles, v.ValidRoot.Name) and (v.Part.Position - Root.Position).Magnitude <= 60 then
+				v:Callback(true)
+			end
+		end
+	end
+end
+
+local function ExitVehicle()
+	Modules.CharUtils.OnJump()
+	repeat
+		if GetVehiclePacket() then
+			GetVehicleModel().PrimaryPart.Velocity = Vector3.new()
+			GetVehicleModel().PrimaryPart.RotVelocity = Vector3.new()
+		end
+		task.wait()
+	until GetVehiclePacket() == nil
+end
+
+Modules.GunItem.SetupBulletEmitter(FakeSniper)
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if GetVehicleModel() then
+			if Settings.AutoLockVehicle then
+				if not VehicleLocked() then
+					if GetLockable() then
+						ToggleLock()
+					end
+				end
+			end
+
+			if Settings.AutoKickPlayers then
+				if GetEjectable() then
+					if GetSeats() then
+						for i,v in next, GetSeats() do
+							if v.Player and v.Player.Name ~= Player.Name then
+								EjectPlayer(v.Player.Name)
+							end
+						end
+					end
+				end
+			end
+		end
+
+		if Settings.LoopTirePop then
+			for _, car in pairs(Workspace.Vehicles:GetChildren()) do
+				pcall(function()
+					if car.PrimaryPart and car:FindFirstChild("Seat") and car.Seat.PlayerName.Value ~= "" and car.Seat.PlayerName.Value ~= Player.Name then
+						for _ = 1, 2 do
+							FakeSniper.LastImpact = 0
+							FakeSniper.BulletEmitter.OnHitSurface:Fire(car.Engine, car.Engine.Position, car.Engine.Position)
+							task.wait(0.25)
+						end
+					end
+				end)
+			end
+		end
+	end
+end)
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Loaded vehicle functions")
+end
+
+-------------------->> Firearm Functions <<--------------------
+
+local function GetClosestCop()
+	for i, v in pairs(Players:GetPlayers()) do
+		if v.Team.Name == "Police" and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+			if DistanceXZ(Root.Position, v.Character.HumanoidRootPart.Position) <= 600 then
+				return v
+			end
+		end
+	end
+
+	return nil
+end
+
+local function GetPistol()
+	if Backpack:FindFirstChild("Pistol") then return end
+	SetIdentity(2)
+	Modules.GunShopUI.open()
+	task.wait()
+	firesignal(PlayerGui.GunShopGui.Container.Container.Main.Container.Slider["Pistol"].Bottom.Action.MouseButton1Down)
+	SetIdentity(8)
+	Modules.GunShopUI.close()
+end
+
+local function EquipPistol(bool)
+	if not Backpack:FindFirstChild("Pistol") then return end
+	Backpack["Pistol"]:SetAttribute("InventoryItemLocalEquipped", bool)
+	Backpack["Pistol"].InventoryEquipRemote:FireServer(bool)
+end
+
+local function ShootPistol()
+	local CurrentGun = Modules.ItemSystem.GetLocalEquipped()
+	if not CurrentGun then 
+		return 
+	end
+	Modules.GunItem._attemptShoot(CurrentGun)
+end
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if not Settings.KillAura then continue end
+		if KillAuraPaused then continue end
+		if not Character then continue end
+		if not Root then continue end
+		if GetVehicleModel() then continue end
+
+		pcall(function()
+			local TargetedCop = GetClosestCop()
+			if TargetedCop then
+				Modules.Raycast.RayIgnoreNonCollideWithIgnoreList = function(...)
+					local arg = {DefaultModules.OldRayIgnore(...)}
+					if (tostring(getfenv(2).script) == "BulletEmitter" or tostring(getfenv(2).script) == "Taser") and TargetedCop and TargetedCop.Character and TargetedCop.Character:FindFirstChild("HumanoidRootPart") and TargetedCop.Character:FindFirstChild("Humanoid") and (TargetedCop.Character.HumanoidRootPart.Position - Root.Position).Magnitude < 600 and TargetedCop.Character.Humanoid.Health > 0 then
+						arg[1] = TargetedCop.Character.HumanoidRootPart
+						arg[2] = TargetedCop.Character.HumanoidRootPart.Position
+					end
+					return unpack(arg)
+				end
+				if not Backpack:FindFirstChild("Pistol") then
+					GetPistol()
+				end
+				if Backpack:FindFirstChild("Pistol") then
+					while Backpack:FindFirstChild("Pistol") and TargetedCop and TargetedCop.Character and TargetedCop.Character:FindFirstChild("HumanoidRootPart") and TargetedCop.Character:FindFirstChild("Humanoid") and (TargetedCop.Character.HumanoidRootPart.Position - Root.Position).Magnitude < 600 and TargetedCop.Character.Humanoid.Health > 0 and not KillAuraPaused and Settings.KillAura and not GetVehicleModel() do
+						EquipPistol(true)
+						task.wait()
+						ShootPistol()
+					end
+					EquipPistol(false)
+					Modules.Raycast.RayIgnoreNonCollideWithIgnoreList = DefaultModules.OldRayIgnore
+				end
+			else
+				Modules.Raycast.RayIgnoreNonCollideWithIgnoreList = DefaultModules.OldRayIgnore
+			end
+		end)
+	end
+end)
+
+if FH_DEBUG then
+	print("[FarmHub (DEBUG)]: Created custom firearm functions.")
+end
+
+-------------------->> Teleportation Functions <<--------------------
+
+local Queued = false
+local MadeBefore = Leaderstats:WaitForChild("Money").Value
+
+local function ServerSwitch()
+	if not Queued then
+		Queued = true
+
+		local ScriptFile = GetDirectory() .. "/Glitch.lua"
+		local ScriptSaved = game:HttpGet("https://raw.githubusercontent.com/TempIsGay/glitch/main/main.lua")
+		writefile(ScriptFile, ScriptSaved)
+
+		local Queue = [[getgenv().StartingMoney = ]] .. getgenv().StartingMoney .. [[
+			getgenv().StartingTime = ]] .. getgenv().StartingTime .. [[
+			script_key = "]] .. script_key .. [[";
+			local success, error = pcall(function()
+				loadfile("]] .. ScriptFile .. [[")()
+			end)
+
+			if not success then
+				if not game:IsLoaded() then 
+					game.Loaded:Wait() 
+					task.wait(1) 
+				end
+            
+				loadstring(game:HttpGet("https://raw.githubusercontent.com/TempIsGay/glitch/main/main.lua"))()
+			end
+		]]
+
+
+	end
+
+
+local LaggedBack = false
+
+local function LagBackCheck(part)
+	local ShouldStop = false
+	local OldPosition = part.Position
+	local Signal = part:GetPropertyChangedSignal("CFrame"):Connect(LPH_NO_VIRTUALIZE(function()
+		local CurrentPosition = part.Position
+
+		if DistanceXZ(CurrentPosition, OldPosition) > 7 then
+			LaggedBack = true
+			task.delay(0.2, function()
+				LaggedBack = false
+			end)
+		end
+	end))
+
+	task.spawn(function()
+		while part and ShouldStop == false do
+			OldPosition = part.Position
+			task.wait()
+		end
+	end)
+
+	return {
+		Stop = function()
+			ShouldStop = true
+			Signal:Disconnect()
+		end
+	}
+end
+
+local function NoclipStart()
+	local Noclipper = nil
+	local NoclipLoop = LPH_NO_VIRTUALIZE(function()
+		pcall(function()
+			if not Character then 
+				Noclipper:Disconnect()
+			end
+			for i, child in pairs(Character:GetDescendants()) do
+				if child:IsA("BasePart") and child.CanCollide == true then
+					child.CanCollide = false
+				end
+			end
+		end)
+	end)
+
+	Noclipper = RunService.Stepped:Connect(NoclipLoop)
+	return {
+		Stop = function()
+			Noclipper:Disconnect()
+		end
+	}
+end
+
+local function SmallTP(cf, speed)
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+		return error()
+	end
+
+	if speed == nil then
+		speed = Settings.PlayerSpeed
+	end
+
+	local IsTargetMoving = type(cf) == "function"
+	local LagCheck = LagBackCheck(Root)
+	local Noclip = NoclipStart()
+	local TargetPos = (IsTargetMoving and cf() or cf).Position
+	local LagbackCount = 0
+	local Success = true
+
+	local Mover = Instance.new("BodyVelocity", Root)
+	Mover.P = 3000
+	Mover.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+	repeat
+		TargetPos = (IsTargetMoving and cf() or cf).Position
+		Mover.Velocity = CFrame.new(Root.Position, TargetPos).LookVector * speed
+
+		task.wait(0.03) 
+
+		if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+			return error()
+		end
+
+		if LaggedBack then
+			LagbackCount = LagbackCount + 1
+			Mover.Velocity = Vector3.zero
+			task.wait(1)
+
+			if LagbackCount > 7 then
+				Mover:Destroy()
+				Noclip:Stop()
+				LagCheck:Stop()
+
+				Humanoid.Health = 0
+				return error()
+			end
+		end
+	until (Root.Position - TargetPos).Magnitude <= 5 or not Success
+
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+		return error()
+	end
+
+	Mover.Velocity = Vector3.new(0, 0, 0)
+	TargetPos = (IsTargetMoving and cf() or cf).Position
+	Root.CFrame = CFrame.new(TargetPos)
+	task.wait(0.001)
+
+	Mover:Destroy()
+	Noclip:Stop()
+	LagCheck:Stop()
+	Root.CFrame = CFrame.new(TargetPos)
+	Root.Velocity, Root.RotVelocity = Vector3.new(0, 0, 0), Vector3.new(0, 0, 0)
+end
+
+local function ChainTP(cfs, func, speed)
+	for _, cframe in pairs(cfs) do
+		SmallTP(cframe, speed)
+		if func then
+			func()
+		end
+	end
+end
+
+local function PathfindTP(vr, speed)
+	local Path = PathfindingService:CreatePath({
+		AgentRadius = 1.5,
+		AgentCanJump = true
+	})
+
+	Path:ComputeAsync(Root.Position, vr)
+	if not Path.Status == Enum.PathStatus.Success then
+		return error()
+	end
+
+	local Waypoints = Path:GetWaypoints()
+	local Points = {}
+	for _, waypoint in pairs(Waypoints) do
+		table.insert(Points, CFrame.new(waypoint.Position) * CFrame.new(0, 4.5, 0))
+	end
+
+	ChainTP(Points, speed)
+end
+
+local function IsBlockingUp()
+	if Raycast(Root.Position + Vector3.new(0, 5, 0), Vector3.new(0, 1000, 0)) then
+		return true
+	end
+
+	return false
+end
+
+local function FixPosition()
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+		return error()
+	end
+
+	local tried = {}
+	if not IsBlockingUp() then 
+		return true 
+	end
+
+	repeat 
+		local Distance, Nearest = math.huge, nil
+		for _, Position in pairs(NoBlockDoors) do
+			if not table.find(tried, Position) then
+				local Magnitude = DistanceXZ(Root.Position, Position)
+				if Magnitude < Distance then
+					Distance = Magnitude
+					Nearest = Position
+				end
+			end
+		end
+
+		PathfindTP(Nearest)
+		task.wait(0.5)
+		if IsBlockingUp() then
+			table.insert(tried, Nearest)
+		end
+	until not IsBlockingUp()
+
+	if not IsBlockingUp() then 
+		return true 
+	else
+		return FixPosition()
+	end
+end
+
+local function BigTP(cf, speed)
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+		return error()
+	end
+
+	if speed == nil then
+		speed = Settings.SkySpeed
+	end
+
+	local IsTargetMoving = type(cf) == "function"
+
+	if DistanceXZ(Root.Position, (IsTargetMoving and cf() or cf).Position) < 20 then
+		Root.CFrame = CFrame.new((IsTargetMoving and cf() or cf).Position)
+		return true
+	end
+
+	if Raycast(Root.Position + Vector3.new(0, 5, 0), Vector3.new(0, 1000, 0)) then
+		FixPosition()
+		task.wait(0.5)
+	end
+
+	local LagCheck = LagBackCheck(Root)
+	local Noclip = NoclipStart()
+	local TargetPos = (IsTargetMoving and cf() or cf).Position
+	local TargetOffset = Vector3.new(TargetPos.X, 500, TargetPos.Z)
+	local LagbackCount = 0
+	local Success = true
+
+	local Mover = Instance.new("BodyVelocity", Root)
+	Mover.P = 3000
+	Mover.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+	repeat
+		TargetPos = (IsTargetMoving and cf() or cf).Position
+		TargetOffset = Vector3.new(TargetPos.X, 500, TargetPos.Z)
+
+		Root.CFrame = CFrame.new(Root.CFrame.X, 500, Root.CFrame.Z)
+		Mover.Velocity = (TargetOffset - Root.Position).Unit * speed
+
+		task.wait(0.03) 
+
+		if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+			return error()
+		end
+
+		if LaggedBack then
+			LagbackCount = LagbackCount + 1
+			Mover.Velocity = Vector3.zero
+			task.wait(1)
+
+			if Raycast(Root.Position + Vector3.new(0, 5, 0), Vector3.new(0, 1000, 0)) then
+				FixPosition()
+				task.wait(0.5)
+			end
+
+			if LagbackCount > 7 then
+				Mover:Destroy()
+				Noclip:Stop()
+				LagCheck:Stop()
+				Humanoid.Health = 0
+				return error()
+			end
+		end
+	until DistanceXZ(Root.Position, TargetOffset) < 15
+
+	Mover.Velocity = Vector3.new(0, 0, 0)
+	TargetPos = (IsTargetMoving and cf() or cf).Position
+	Root.CFrame = CFrame.new(TargetPos)
+	task.wait(0.05)
+
+	Mover:Destroy()
+	Noclip:Stop()
+	LagCheck:Stop()
+
+	task.wait(0.6)
+	if (Root.Position - TargetPos).Magnitude > 30 then
+		return BigTP(cf, speed)
+	end
+end
+
+local config = {
+	HeliSpeed = 5000,
+	VehicleSpeed = 500,
+	FlightSpeed = 175,
+	PathSpeed = 180
+}
+
+local InHeli = function() return ((GetVehicleModel() and GetVehicleModel().Name == 'Heli') and true) or false end
+local InCar = function() return ((GetVehicleModel() and GetVehicleModel().Name == 'Jeep' or "Camaro") and true) or false end
+local GetRoot = function() return (GetVehicleModel() and GetVehicleModel().PrimaryPart) or Root end
+
+local function GetVehicle()
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+		return error()
+	end
+	if GetVehiclePacket() then
+		pcall(function()
+			GetVehicleModel().plate.SurfaceGui.Frame.TextLabel.Text = "FarmHub"
+		end)
+		return true
+	end
+	local Vehicles = Workspace.Vehicles:GetChildren()
+	local OwnedCars = {"Camaro", "Jeep"}
+
+	table.sort(Vehicles, function(a, b)
+		if a.PrimaryPart and b.PrimaryPart then
+			return (a.PrimaryPart.Position - Root.Position).Magnitude < (b.PrimaryPart.Position - Root.Position).Magnitude
+		end
+	end)
+
+	if ClosestVehicle() then
+		FixPosition()
+		EnterVehicle()
+		BreakFunc = tick()
+		repeat task.wait() until GetVehiclePacket() or tick() - BreakFunc > 1.5
+		if GetVehiclePacket() then 
+			pcall(function()
+				GetVehicleModel().plate.SurfaceGui.Frame.TextLabel.Text = "FarmHub"
+			end)
+			return true
+		end 
+	end
+
+	if GetSpawnTime() < 0 then
+		local LowestPoint = Raycast(Root.Position, Vector3.new(0, -1000, 0)).Position
+		local SpawnPoint = CFrame.new(LowestPoint + Vector3.new(0, 7, 0))
+
+		for i = 1, 5 do
+			Root.CFrame = SpawnPoint
+			wait(0.05)
+		end
+
+		Services.ReplicatedStorage.GarageSpawnVehicle:FireServer("Chassis", (math.random(1, 2) == 1 and "Camaro" or "Jeep"))
+
+		local BreakTime = tick()
+		repeat
+			task.wait(0.25)
+		until tick() - BreakTime > 5 or GetVehicleModel()
+
+		if GetVehicleModel() then
+			pcall(function()
+				GetVehicleModel().plate.SurfaceGui.Frame.TextLabel.Text = "FarmHub"
+			end)
+			return true
+		end
+	end
+
+	for i, v in pairs(Vehicles) do
+		if table.find(OwnedCars, v.Name) and v.PrimaryPart and v.Seat and not v.Seat.Player.Value and not Raycast(v.PrimaryPart.Position, Vector3.new(0, 1000, 0)) then 
+			if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() then
+				return error()
+			end
+
+			if (Root.Position - v.Seat.Position).Magnitude > 50 then
+				if BigTP(v.Seat.CFrame * CFrame.new(0, 4.5, 0)) == true then
+					return
+				end
+			end
+
+			for i = 1, 50 do
+				EnterVehicle(v)
+				task.wait(0.1)
+
+				if GetVehiclePacket() then
+					pcall(function()
+						GetVehicleModel().Model.plate.SurfaceGui.Frame.TextLabel.Text = "FarmHub"
+					end)
+					return true
+				end
+
+				if not v.PrimaryPart or not v:FindFirstChild("Seat") or v.Seat.Player.Value then
+					break
+				end
+
+				if i > 10 then
+					if v:GetAttribute("Locked") then
+						break
+					end
+				end
+			end
+		end
+	end
+
+	return GetVehicle()
+end
+
+local function FlightMove(pos)
+	if not GetVehiclePacket() then
+		GetVehicle()
+	end
+
+	LPH_NO_VIRTUALIZE(function()
+		local LagCheck = LagBackCheck(Root)
+		local LagbackCount = 0
+		local speed = (InHeli() and -config['HeliSpeed']) or (GetVehicleModel() and -config['VehicleSpeed']) or -config['FlightSpeed']
+		local GetPos = function() return Vector3.new(pos.x, 500, pos.z) end
+		Character:PivotTo(CFrame.new(Root.Position.x, 500, Root.Position.z))
+
+		local dist = GetRoot().Position - GetPos()
+		while dist.Magnitude > 10 do	
+			dist = GetRoot().Position - GetPos()
+			local velocity = dist.Unit * speed
+			velocity = Vector3.new(velocity.x, 0, velocity.z)
+
+			GetRoot().Velocity = velocity
+			Character:PivotTo(CFrame.new(Root.Position.x, 500, Root.Position.z))
+			task.wait()
+		end
+
+		GetRoot().Velocity = Vector3.zero
+		Character:PivotTo(CFrame.new(GetPos()))
+	end)()
+end
+
+local function VehicleTP(cframe, leave, offset, speed)
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested()  then
+		return error()
+	end
+
+	GetVehicle()
+
+	speed = (speed or Settings.VehicleSpeed)
+	offset = (offset or 1000)
+
+	local IsTargetMoving = type(cframe) == "function"
+	local CarModel = GetVehicleModel().PrimaryPart
+	local LagCheck = LagBackCheck(CarModel)
+	local TargetPos = (IsTargetMoving and cframe() or cframe).Position
+	local TargetOffset = Vector3.new(TargetPos.X, offset, TargetPos.Z)
+	local LagbackCount = 0
+	local Success = true
+
+	local Mover = Instance.new("BodyVelocity", Root)
+	Mover.P = 3000
+	Mover.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+	repeat
+
+		TargetPos = (IsTargetMoving and cframe() or cframe).Position
+		TargetOffset = Vector3.new(TargetPos.X, offset, TargetPos.Z)
+
+		CarModel.CFrame = CFrame.new(CarModel.CFrame.X, offset, CarModel.CFrame.Z)
+		Mover.Velocity = (TargetOffset - CarModel.Position).Unit * speed
+
+		task.wait(0.03) 
+
+		if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() or not GetVehicleModel() then
+			return error()
+		end
+
+		if LaggedBack then
+			LagbackCount = LagbackCount + 1
+			Mover.Velocity = Vector3.zero
+			task.wait(1)
+
+			if LagbackCount == 10 then
+				Mover:Destroy()
+				if offset == 500 then
+					LagCheck:Stop()
+				end
+
+				Humanoid.Health = 0
+				return error()
+
+			end
+		end
+	until not Success or DistanceXZ(CarModel.Position, TargetOffset) < 15
+
+	Mover.Velocity = Vector3.new(0, 0.01, 0)
+	task.wait(0.01)
+	Mover:Destroy()
+
+	TargetPos = (IsTargetMoving and cframe() or cframe).Position
+	CarModel.CFrame = CFrame.new(TargetPos)
+	task.wait(0.01)
+	LagCheck:Stop()
+	if leave then 
+		wait(0.5)
+		ExitVehicle() 
+	end
+end
+
+local function VehicleDirectTP(cframe, speed)
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested()  then
+		return error()
+	end
+
+	GetVehicle()
+
+	speed = (speed or Settings.VehicleSpeed - 135)
+
+	local IsTargetMoving = type(cframe) == "function"
+	local CarModel = GetVehicleModel().PrimaryPart
+	local TargetPos = (IsTargetMoving and cframe() or cframe).Position
+	local TargetOffset = Vector3.new(TargetPos.X, TargetPos.Y, TargetPos.Z)
+
+	local Mover = Instance.new("BodyVelocity", CarModel)
+	Mover.P = 3000
+	Mover.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+	repeat
+		TargetPos = (IsTargetMoving and cframe() or cframe).Position
+		TargetOffset = Vector3.new(TargetPos.X, TargetPos.Y, TargetPos.Z)                    
+		CarModel.CFrame = CFrame.new(CarModel.CFrame.X, CarModel.CFrame.Y, CarModel.CFrame.Z)
+		Mover.Velocity = (TargetOffset - CarModel.Position).Unit * speed
+
+		task.wait(0.03) 
+
+		if not Character or not Root or not Humanoid or Humanoid.Health == 0 or IsArrested() or not GetVehicleModel() then
+			return error()
+		end
+	until DistanceXZ(CarModel.Position, TargetPos) < 15
+
+	Mover.Velocity = Vector3.new(0, 0.01, 0)
+	task.wait(0.01)
+	Mover:Destroy()
+
+	TargetPos = (IsTargetMoving and cframe() or cframe).Position
+	CarModel.CFrame = CFrame.new(TargetPos)
+	task.wait(0.01)
+end
+
+local function VehicleInstantTP(cf)
+	GetVehicle()
+	WaitUntil(function()
+		return GetVehicleModel()
+	end, 5)
+	for i,v in pairs(GetVehicleModel():GetDescendants()) do
+		pcall(function()
+			v.CanCollide = false
+		end)
+	end
+	GetVehicleModel().Name = "FarmhubVehicle"
+	while GetVehicleModel() do
+		GetVehicleModel():SetPrimaryPartCFrame(cf)
+		task.wait()
+	end
+	for i = 1, 5 do
+		Root.CFrame = cf
+		Root.Velocity = Vector3.new()
+	end
+end
+
+-------------------->>  Robbery Functions  <<--------------------
+
+local function FlipTable(tab)
+	local Res = {}
+
+	for i, v in next, tab do
+		Res[(#tab + 1) - i] = v
+	end
+
+	return Res
+end
+
+local function getPairs(grid)
+	local pairs = {}
+	for i = 1, #grid do
+		for j = 1, #grid[i] do
+			local cell = grid[i][j]
+			local neighborCount = 0
+			for k = -1, 1 do
+				for l = -1, 1 do
+					local neighbor = grid[i + k] and grid[i + k][j + l]
+					if math.abs(k + l) == 1 and neighbor and neighbor == cell then
+						neighborCount = neighborCount + 1
+					end
+				end
+			end
+			if neighborCount == 1 then
+				if not pairs[cell] then
+					pairs[cell] = {}
+				end
+				table.insert(pairs[cell], {
+					Cell = cell,
+					i = i,
+					j = j
+				})
+			end
+		end
+	end
+	return pairs
+end
+
+local function IsBagFull()
+	if not RobberyMoneyGui.Enabled then
+		return false
+	end
+
+	local BagText = BagLabel.Text
+	for i, v in next, BagText:split("") do
+		if v == "/" then
+			return BagText:sub(1, i - 2) == BagText:sub(i + 2)
+		end
+	end
+
+	return false
+end
+
+local function SolveNumberLink()
+	if Puzzle.IsOpen then
+		repeat task.wait()
+			local Success = false
+			local GridCopy = {}
+
+			for i = 1, #Puzzle.Grid do
+				GridCopy[i] = {}
+				for j = 1, #Puzzle.Grid[i] do
+					GridCopy[i][j] = Puzzle.Grid[i][j] + 1
+				end     
+			end
+
+			local Body = http.request({
+				Url = "https://d51c3dbe-30d1-4d66-82da-eb2a8fc34ced-00-5dwbqlo3bv2u.picard.replit.dev/", -- "https://numberlink.ra1n.dev/",
+				Method = "POST",
+				Body = HttpService:JSONEncode({
+					Matrix = GridCopy
+				}),
+				Headers = {
+					["Content-Type"] = "application/json",
+					["X-Requested-With"] = "RobloxHttp"
+				}
+			}).Body
+
+			local Solution = HttpService:JSONDecode(Body).Solution
+			for i = 1, #Solution do
+				for j = 1, #Solution[i] do
+					Solution[i][j] = Solution[i][j] - 1
+				end
+			end
+
+			local Pairs = getPairs(Solution)
+			for i = 0, #Pairs do
+				local Start = Pairs[i][1]
+				local End = Pairs[i][2]
+				local Current = Start
+
+				for _ = 1, 50 do
+					if not Puzzle.IsOpen then
+						break
+					end
+
+					for x = -1, 1 do
+						for y = -1, 1 do
+							local Cell = Puzzle.Grid[Current.i + x] and Puzzle.Grid[Current.i + x][Current.j + y]
+							local SolvedCell = Solution[Current.i + x] and Solution[Current.i + x][Current.j + y]
+
+							if math.abs(x + y) == 1 and SolvedCell == Start.Cell and (Cell == -1 or (Current.i + x == End.i and Current.j + y == End.j)) then
+								Puzzle.Grid[Current.i + x][Current.j + y] = SolvedCell
+								Puzzle:Draw()
+								Current = {
+									i = Current.i + x,
+									j = Current.j + y
+								}
+								break
+							end
+						end
+					end
+
+					task.wait((Settings.HumanSolve and 0.08 or 0.0000001))
+					if Current.i == End.i and Current.j == End.j then
+						Puzzle.OnConnection()
+						break
+					end
+				end
+			end
+
+			repeat task.wait() until not Puzzle.IsOpen
+			Success = true
+
+			if not Success then
+				Puzzle:Reset()
+			end
+		until not Puzzle.IsOpen
+		return true
+	end
+	return false
+end
+
+local function GetUraniumValue()
+	if PlayerGui:FindFirstChild("PowerPlantRobberyGui") then
+		return tonumber(table.concat({string.match(PlayerGui.PowerPlantRobberyGui.Price.TextLabel.Text, "Uranium Value: $(%d),(%d+)")}, ""))
+	end
+
+	return 0
+end
+
+local function IsPlaneInAir()
+	for _, spec in pairs(Specs) do
+		if spec.Name == "Inspect Crate" then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function AreCopsClose(range)
+	for i, v in pairs(Players:GetPlayers()) do
+		if v.Team.Name == "Police" and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+			if DistanceXZ(Root.Position, v.Character.HumanoidRootPart.Position) <= range then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+local function HeliOnMap()
+	for _, v in pairs(Workspace.Vehicles:GetChildren()) do
+		if v.Name == "Heli" and v.PrimaryPart and v.Seat and not v.Seat.Player.Value and not Raycast(v.PrimaryPart.Position, Vector3.new(0, 1000, 0)) then 
+			return true
+		end
+	end
+
+	return false
+end
+
+local function GetClosestAirdrop()
+	if Workspace:FindFirstChild("Drop") then
+		local TargetDrop = Workspace:FindFirstChild("Drop")       
+
+		if TargetDrop:GetAttribute("BriefcaseLanded") then
+			return TargetDrop
+		end
+	end
+
+	return nil
+end
+
+local Platform = Instance.new("Part", Workspace) or Workspace:FindFirstChild("JBARPlatform")
+Platform.Name = "JBARPlatform"
+Platform.Anchored = true
+Platform.Size = Vector3.new(150, 2, 150)
+Platform.Position = Vector3.new(0, 0, 0)
+Platform.Transparency = 1
+Ignore(Platform)
+
+local function BringPlatform(pos, move)
+	pos = pos or CFrame.new(Root.CFrame.X, 1020, Root.CFrame.Z)
+	move = move or true
+	Platform.CFrame = pos
+
+	if move then
+		if GetVehiclePacket() then 
+			GetVehicleModel():SetPrimaryPartCFrame(pos * CFrame.new(0, 4, 0))
+		else
+			Root.CFrame = pos * CFrame.new(0, 4, 0)
+		end
+	end
+end
+
+local function Cooldown()
+	if Settings.AwaitReward and Player.PlayerGui.AppUI:FindFirstChild("RewardSpinner") then
+		SetStatus("Safe Platform", "Awaiting reward spin..")
+		repeat wait() until Player.PlayerGui.AppUI:FindFirstChild("RewardSpinner") == nil
+
+	end
+
+	if Settings.Cooldown ~= 0 then
+		for i = 1, Settings.Cooldown, -1 do
+			SetStatus("Safe Platform", "Cooling down.. " .. i .. "s")
+			wait(1)
+		end
+
+		SetStatus("Safe Platform", "Cooling down..")
+		wait(1)
+	end
+end
+
+local VolcanoPos = {
+	Vector3.new(2135, 19, -2652),
+	Vector3.new(2009, 19, -2539),
+	Vector3.new(2142, 19, -2527),
+	Vector3.new(2213, 19, -2659)
+}
+
+local function Escape(title)
+	title = title or ""
+	if not Character or not Root or not Humanoid or Humanoid.Health == 0 or (IsArrested() and not Player.Team == Teams.Prisoner) then
+		task.wait(5)
+		return error()
+	end
+
+	if Player.Team == Teams.Prisoner or IsArrested() then
+		SetStatus(title, "Waiting..") 
+		if IsArrested() then
+			repeat task.wait() until not IsArrested()
+		end
+
+		if IsBlockingUp() then
+			Humanoid.Health = 0
+			task.wait(5)
+
+			while Root == nil or Humanoid == nil or Character == nil do
+				task.wait()
+			end
+		end
+
+		SetStatus(title, "Escaping..") 
+		Root.CFrame = CFrame.new(Root.CFrame.X, 200, Root.CFrame.Z)
+		SmallTP(CFrame.new(-1007, 73, -1759))
+
+		while Player.Team ~= Teams.Criminal do 
+			wait()
+			SmallTP(CFrame.new(-1007, 73, -1759))
+		end
+		EnterVehicle()
+		task.wait(0.45)
+		BringPlatform()
+	else
+		for i, v in pairs(VolcanoPos) do
+			if (Root.Position - v).Magnitude < 100 then
+				SetStatus(title, "Escaping..")
+				PathfindTP(Vector3.new(2185, 19, -2663))
+				ChainTP({
+					CFrame.new(2172, 28, -2717),
+					CFrame.new(2126, 28, -2977),
+					CFrame.new(2097, 28, -3106),
+					CFrame.new(2051, 20, -3178),
+				})
+				task.wait(1)
+			end
+		end
+
+		if DistanceXZ(Root.Position, Vector3.new(-274, 18, 1581)) < 150 and IsBlockingUp() then
+			if not GetVehicleModel() then  
+				SetStatus(title, "Escaping..")
+				PathfindTP(Vector3.new(-274, 18, 1581))
+				task.wait(1)
+			end
+		end
+
+		if IsBlockingUp() then
+			Humanoid.Health = 0
+			task.wait(5)
+
+			while Root == nil or Humanoid == nil or Character == nil do
+				task.wait()
+			end
+
+			return error()
+		end
+	end
+end
+
+-------------------->>  Robbery Callbacks  <<--------------------
+
+local rayDirs = { up = Vector3.new(0, 999, 0), down = Vector3.new(0, -999, 0) }
+
+local function rayCast(pos, dir)
+	local ignoreList = {}
+	if Character then table.insert(ignoreList, Character) end
+	if GetVehicleModel() then table.insert(ignoreList, GetVehicleModel()) end
+	local rain = game.Workspace:FindFirstChild('Rain')
+	if rain then table.insert(ignoreList, rain) end
+
+	local params = RaycastParams
+	params.RespectCanCollide = true
+	params.FilterDescendantsInstances = ignoreList
+	params.IgnoreWater = true
+	local result = game.Workspace:Raycast(pos, dir, params)
+	if result then return result.Instance, result.Position else return nil, nil end
+end
+
+local function GoToGround()
+	while task.wait() do
+		local _, pos = rayCast(Root.Position, rayDirs.down)
+		if pos then 
+			local timee = tick()
+			
+			repeat
+				GetVehicleModel():PivotTo(CFrame.new(Root.Position.x, pos.y + 2, Root.Position.z)) 
+				task.wait()
+			until tick() - timee > 1
+			
+			task.wait(0.3) 
+			GetRoot().Velocity = Vector3.zero 
+			return 
+		end
+	end
+end
+
+local function RobPowerPlant()
+	if not Robbery.PowerPlant.Enabled then return end Escape("Power Plant")
+	SetStatus("Power Plant", "Teleporting to robbery..")
+
+	FlightMove(Vector3.new(61, 21, 2322))
+	task.wait(0.1)
+	
+	local timee = tick()
+	
+	repeat
+		GetVehicleModel():PivotTo(CFrame.new(61, 24, 2322)) 
+		task.wait()
+	until tick() - timee > 1
+	
+	task.wait(0.2)
+	ExitVehicle()
+	task.wait(0.3)
+	SetStatus("Power Plant", "Opening robbery..")
+	SmallTP(CFrame.new(88, 22, 2324))
+
+	BreakFunc = tick()
+	repeat task.wait() until Puzzle.IsOpen or tick() - BreakFunc > 5
+	if not Puzzle.IsOpen then
+		SetStatus("Power Plant", "Robbery Failed!")
+		EnterVehicle()
+		task.wait(0.45)
+		BringPlatform()
+		return ServerSwitch()
+	end
+
+	if SolveNumberLink() then
+		SetStatus("Power Plant", "Starting robbery..")
+
+		ChainTP({
+			CFrame.new(93, 30, 2336),
+			CFrame.new(145, 27, 2296),
+			CFrame.new(210, 19, 2246),
+			CFrame.new(145, -8, 2096),
+			CFrame.new(119, -9, 2099)
+		}, function()
+			if Robbery.PowerPlant.Open then return end
+			if not Character or not Root or Humanoid.Health < 1 then return end
+		end)
+
+		SetStatus("Power Plant", "Collecting uranium..")
+		BreakFunc = tick()
+		repeat task.wait() until Puzzle.IsOpen or tick() - BreakFunc > 5
+		pcall(SolveNumberLink)
+
+		Robbery.PowerPlant.Robbed = true
+		SetStatus("Power Plant", "Exiting robbery..")
+		ChainTP({
+			CFrame.new(93, -13, 2130),
+			CFrame.new(87, -37, 2115),
+			CFrame.new(42, -37, 2100),
+			CFrame.new(28, -37, 2135),
+			CFrame.new(51, -37, 2169),
+			CFrame.new(59, -5, 2188),
+			CFrame.new(49, -5, 2197),
+			CFrame.new(96, 14, 2259),
+			CFrame.new(96, 23, 2259),
+			CFrame.new(64, 21, 2303),
+		}, function()
+			if Robbery.PowerPlant.Open then return end
+			if not Character or not Root or Humanoid.Health < 1 then return end
+		end)
+		
+		SmallTP(CFrame.new(63, 21, 2324))
+
+		SetStatus("Power Plant", "Teleporting to volcano..")
+		FlightMove(Vector3.new(2286, 19, -2060))
+		task.wait(0.1)
+		
+		local timee2 = tick()
+
+		repeat
+			GetVehicleModel():PivotTo(CFrame.new(2288, 19, -2037)) 
+			task.wait()
+		until tick() - timee2 > 0.5
+		task.wait(0.3)
+
+		VehicleDirectTP(NewCFrame(2275, 25, -2127))
+		VehicleDirectTP(NewCFrame(2213, 25, -2475))
+		VehicleDirectTP(NewCFrame(2279, 25, -2551))
+		SetStatus("Power Plant", "Selling..")
+		GetVehicleModel().PrimaryPart.Anchored = true
+		if Player.PlayerGui:FindFirstChild("PowerPlantRobberyGui") then
+			GetVehicleModel():SetPrimaryPartCFrame(CFrame.new(2279, 70, -2551))
+			repeat task.wait() until GetUraniumValue() <= 6400
+			GetVehicleModel():SetPrimaryPartCFrame(CFrame.new(2279, 25, -2551))
+		end
+		GetVehicleModel().PrimaryPart.Anchored = false
+
+		VehicleDirectTP(NewCFrame(2291, 20, -2593))
+		repeat task.wait() until not PlayerGui:FindFirstChild("PowerPlantRobberyGui")
+		SetStatus("Power Plant", "Robbery Complete!")
+
+		VehicleDirectTP(NewCFrame(2279, 25, -2551))
+		VehicleDirectTP(NewCFrame(2213, 25, -2475))
+		VehicleDirectTP(NewCFrame(2275, 25, -2127))
+		VehicleDirectTP(NewCFrame(2284, 19, -2072))
+
+		task.wait(0.45)
+		BringPlatform()
+	else
+	   return ServerSwitch()
+	end
+end
+
+-------------------->>  Auto Rob  <<--------------------
+
+local function Pcall(func, name)
+	local Success, Error = pcall(func)
+	if not Success then
+		print(Error)
+		-- warn("Error in "..name..": ".. debug.traceback())
+	end
+end
+
+function ToggleAutorob(bool)
+	Settings.Enabled = bool
+	if not bool then
+		return
+	end
+	
+	getgenv().StartingMoney         = Leaderstats:WaitForChild("Money").Value
+	getgenv().StartingTime          = tick()
+	local DotCount                  = 0
+
+	ForEvery(1, function(stop)
+		if Settings.Enabled then
+			SetStats(Leaderstats:WaitForChild("Money").Value - getgenv().StartingMoney, tick() - getgenv().StartingTime)
+		else
+			SetStats(0, 0)
+			stop()
+		end
+	end)
+
+	SetStats(0, 0)
+	SetStatus("None", "Auto Rob Disabled.")
+end
+
+-------------------->>  On Kick  <<--------------------
+
+local function FixCoreGui()
+	game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+		if child.Name == "ErrorPrompt" and child:FindFirstChild("MessageArea") and child.MessageArea:FindFirstChild("ErrorFrame") then
+			ServerSwitch()
+		end
+	end)
+end
+
+task.spawn(function()
+	while not pcall(FixCoreGui) do
+		print("Failed to load coregui kick detection, retrying in 0.1s")
+		task.wait(0.1)
+	end
+end)
+
+-------------------->>  Prestart Autorob  <<--------------------
+
+repeat task.wait(0.1) until Character and Humanoid and Root
+repeat task.wait() pcall(function() Modules.TeamChooseUI.Hide() end) until PlayerGui:FindFirstChild("TeamSelectGui") == nil or PlayerGui:FindFirstChild("TeamSelectGui").Enabled == false or Player.TeamColor == BrickColor.new("Bright red") or Humanoid.Health <= 0
+
+while wait() do
+	pcall(RobPowerPlant)
+end
